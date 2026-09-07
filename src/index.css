@@ -428,6 +428,60 @@ a {
   color: var(--brand-color);
 }
 
+/* A formula-match row that a sentence-shaped query resolved to — same
+   shell as a normal result, just with a badge instead of the category
+   line, so it reads as "found via search" rather than "computed". */
+.search-result-smart {
+  background: rgba(79, 70, 229, 0.07);
+}
+
+.search-result-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--brand-color);
+}
+
+/* The one card type that carries an actual computed number rather than
+   just pointing at a formula — set apart with the brand gradient so a
+   "formula for velocity when I know..." query visibly answers itself
+   instead of reading as just another result in the list. */
+.search-smart-answer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  margin-bottom: 4px;
+  border-radius: 16px;
+  border: none;
+  background: var(--brand-gradient);
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.search-smart-answer-value {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.search-smart-answer-source {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.search-smart-answer-source .katex-wrap {
+  color: #fff;
+}
+
+.search-smart-answer-knowns {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
 /* ---------------- Subject pills (landing) ---------------- */
 
 /* width: 100% (rather than shrink-to-fit + center, as it was with 3 cards)

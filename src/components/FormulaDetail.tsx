@@ -10,6 +10,11 @@ import { formulas } from '../data/formulas';
 interface FormulaDetailProps {
   formula: Formula;
   originRect: DOMRect | null;
+  // Calc-var values a smart search already parsed out of a sentence, so
+  // the calculator below opens with those filled in instead of blank.
+  // Only ever meant for the formula's own top-level `calc` — a variant
+  // card (picked after the fact via the dropdown) always opens blank.
+  prefill?: Record<string, number>;
   onClose: () => void;
   onJump: (formula: Formula) => void;
 }
@@ -28,7 +33,7 @@ function panelTarget() {
   };
 }
 
-export function FormulaDetail({ formula, originRect, onClose, onJump }: FormulaDetailProps) {
+export function FormulaDetail({ formula, originRect, prefill, onClose, onJump }: FormulaDetailProps) {
   const [target] = useState(panelTarget);
   const cat = categoryMap[formula.category];
   const panelRef = useRef<HTMLDivElement>(null);
@@ -144,7 +149,9 @@ export function FormulaDetail({ formula, originRect, onClose, onJump }: FormulaD
               </div>
             )}
 
-            {formula.calc && <FormulaCalculator key={`calc-${formula.id}`} calc={formula.calc} />}
+            {formula.calc && (
+              <FormulaCalculator key={`calc-${formula.id}`} calc={formula.calc} initialValues={prefill} />
+            )}
           </>
         )}
 

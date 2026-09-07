@@ -2,9 +2,18 @@ import { useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Katex } from './Katex';
 import { searchFormulas } from '../lib/search';
+import { parseSmartQuery, type SmartQueryResult } from '../lib/smartQuery';
 import { formulas } from '../data/formulas';
 import { categoryMap } from '../data/categories';
 import { useDetail } from '../context/DetailContext';
+
+// Mirrors FormulaCalculator's own number formatting so a smart-search
+// answer and the same value found by hand in the calculator read
+// identically.
+function formatValue(n: number): string {
+  if (n !== 0 && (Math.abs(n) < 1e-4 || Math.abs(n) >= 1e9)) return n.toExponential(4);
+  return String(Number(n.toPrecision(6)));
+}
 
 function SearchIcon() {
   return (
@@ -37,7 +46,13 @@ export function GlobalSearch() {
   const restRef = useRef<HTMLDivElement>(null);
   const { openDetail } = useDetail();
 
-  const results = useMemo(() => searchFormulas(formulas, query).slice(0, 8), [query]);
+  const smart = useMemo<SmartQueryResult | null>(() => parseSmartQuery(query), [query]);
+  const results = useMemo(
+    () => searchFormulas(formulas, query)
+      .filter((f) => f.id !== smart?.formula.id)
+      .slice(0, 8),
+    [query, smart],
+  );
   const showResults = expanded && query.trim().length > 0;
 
   function openExpanded() {
@@ -167,38 +182,91 @@ export function GlobalSearch() {
             exit={{ opacity: 0, y: -8, scale: 0.98 }}
             transition={{ duration: 0.18 }}
           >
-            {results.length === 0 ? (
+            {!smart && results.length === 0 ? (
               <div className="search-empty">No formulas found</div>
             ) : (
-              <AnimatePresence initial={false}>
-                {results.map((f) => {
-                  const cat = categoryMap[f.category];
-                  return (
-                    <motion.button
-                      key={f.id}
-                      layout
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ layout: { duration: 0.18 }, opacity: { duration: 0.12 } }}
-                      type="button"
-                      className="search-result"
-                      onClick={(e) => {
-                        openDetail(f, e.currentTarget.getBoundingClientRect());
-                        closeExpanded();
-                      }}
-                    >
-                      <span className="search-result-formula">
-                        <Katex math={f.latex} />
-                      </span>
-                      <span className="search-result-meta">
-                        <span className="search-result-title">{f.title}</span>
-                        <span className="search-result-category">{cat.name}</span>
-                      </span>
-                    </motion.button>
-                  );
-                })}
-              </AnimatePresence>
+              <>
+                {smart && smart.kind === 'answer' && (
+                  <button
+                    type="button"
+                    className="search-smart-answer"
+                    onClick={(e) => {
+                      openDetail(smart.formula, e.currentTarget.getBoundingClientRect(), smart.prefill);
+                      closeExpanded();
+                    }}
+                  >
+                    <div className="search-smart-answer-value">
+                      {smart.targetSymbol} ≈ {formatValue(smart.value)}
+                      {smart.targetUnit ? ` ${smart.targetUnit}` : ''}
+                    </div>
+                    <div className="search-smart-answer-source">
+                      <Katex math={smart.formula.latex} />
+                      <span>{smart.formula.title}</span>
+                    </div>
+                    {smart.knowns.length > 0 && (
+                      <div className="search-smart-answer-knowns">
+                        Using{' '}
+                        {smart.knowns.map((k, i) => (
+                          <span key={k.symbol}>
+                            {i > 0 ? ', ' : ''}
+                            {k.symbol} = {formatValue(k.value)}
+                            {k.unit ? ` ${k.unit}` : ''}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </button>
+                )}
+                {smart && smart.kind === 'formula-match' && (
+                  <button
+                    type="button"
+                    className="search-result search-result-smart"
+                    onClick={(e) => {
+                      openDetail(smart.formula, e.currentTarget.getBoundingClientRect(), smart.prefill);
+                      closeExpanded();
+                    }}
+                  >
+                    <span className="search-result-formula">
+                      <Katex math={smart.formula.latex} />
+                    </span>
+                    <span className="search-result-meta">
+                      <span className="search-result-title">{smart.formula.title}</span>
+                      {smart.targetMeaning && (
+                        <span className="search-result-badge">Solve for {smart.targetMeaning.toLowerCase()}</span>
+                      )}
+                    </span>
+                  </button>
+                )}
+                <AnimatePresence initial={false}>
+                  {results.map((f) => {
+                    const cat = categoryMap[f.category];
+                    return (
+                      <motion.button
+                        key={f.id}
+                        layout
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ layout: { duration: 0.18 }, opacity: { duration: 0.12 } }}
+                        type="button"
+                        className="search-result"
+                        onClick={(e) => {
+                          openDetail(f, e.currentTarget.getBoundingClientRect());
+                          closeExpanded();
+                        }}
+                      >
+                        <span className="search-result-formula">
+                          <Katex math={f.latex} />
+                        </span>
+                        <span className="search-result-meta">
+                          <span className="search-result-title">{f.title}</span>
+                          <span className="search-result-category">{cat.name}</span>
+                        </span>
+                      </motion.button>
+                    );
+                  })}
+                </AnimatePresence>
+              </>
             )}
           </motion.div>
         )}

@@ -14,12 +14,14 @@ import type { Formula } from './types';
 interface DetailState {
   formula: Formula;
   rect: DOMRect | null;
+  prefill?: Record<string, number>;
 }
 
 function App() {
   const [detail, setDetail] = useState<DetailState | null>(null);
 
-  const openDetail = (formula: Formula, rect: DOMRect | null) => setDetail({ formula, rect });
+  const openDetail = (formula: Formula, rect: DOMRect | null, prefill?: Record<string, number>) =>
+    setDetail({ formula, rect, prefill });
 
   return (
     <DetailContext.Provider value={{ openDetail }}>
@@ -42,6 +44,7 @@ function App() {
                 <FormulaDetail
                   formula={detail.formula}
                   originRect={detail.rect}
+                  prefill={detail.prefill}
                   onClose={() => setDetail(null)}
                   onJump={(formula) => setDetail({ formula, rect: null })}
                 />

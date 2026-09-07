@@ -2,10 +2,11 @@ import { useMemo, useState } from 'react';
 import type { FormulaCalc } from '../types';
 import { solveForUnknown } from '../lib/solve';
 
-function initialCalcValues(calc: FormulaCalc): Record<string, string> {
+function initialCalcValues(calc: FormulaCalc, prefill?: Record<string, number>): Record<string, string> {
   const values: Record<string, string> = {};
   calc.vars.forEach((v) => {
-    values[v.key] = v.defaultValue !== undefined ? String(v.defaultValue) : '';
+    const known = prefill?.[v.key];
+    values[v.key] = known !== undefined ? String(known) : v.defaultValue !== undefined ? String(v.defaultValue) : '';
   });
   return values;
 }
@@ -17,9 +18,11 @@ function formatSolved(n: number): string {
 
 // Mount this with a `key` unique to the formula/variant it belongs to — a
 // fresh key remounts it with clean state instead of carrying over another
-// formula's leftover input values.
-export function FormulaCalculator({ calc }: { calc: FormulaCalc }) {
-  const [calcValues, setCalcValues] = useState<Record<string, string>>(() => initialCalcValues(calc));
+// formula's leftover input values. `initialValues` pre-fills specific
+// fields (calc-var key -> value) — e.g. numbers a smart search already
+// parsed out of a sentence — rather than opening every field blank.
+export function FormulaCalculator({ calc, initialValues }: { calc: FormulaCalc; initialValues?: Record<string, number> }) {
+  const [calcValues, setCalcValues] = useState<Record<string, string>>(() => initialCalcValues(calc, initialValues));
 
   const solved = useMemo(() => {
     const blankKeys = calc.vars.filter((v) => (calcValues[v.key] ?? '').trim() === '').map((v) => v.key);
@@ -43,7 +46,7 @@ export function FormulaCalculator({ calc }: { calc: FormulaCalc }) {
   }
 
   function handleReset() {
-    setCalcValues(initialCalcValues(calc));
+    setCalcValues(initialCalcValues(calc, initialValues));
   }
 
   return (

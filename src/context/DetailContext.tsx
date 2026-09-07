@@ -2,7 +2,10 @@ import { createContext, useContext } from 'react';
 import type { Formula } from '../types';
 
 export interface DetailContextValue {
-  openDetail: (formula: Formula, rect: DOMRect | null) => void;
+  // `prefill` carries calc-var values the smart search already parsed out
+  // of a sentence (e.g. "mass = 5 kg") so the calculator opens with those
+  // filled in instead of blank.
+  openDetail: (formula: Formula, rect: DOMRect | null, prefill?: Record<string, number>) => void;
 }
 
 export const DetailContext = createContext<DetailContextValue | null>(null);
