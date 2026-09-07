@@ -1,11 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FormulaBox } from './FormulaBox';
-import { FormulaCalculator } from './FormulaCalculator';
+import { FormulaBoxWithCalculator } from './FormulaBoxWithCalculator';
 import { VariantPicker } from './VariantPicker';
-import type { Formula } from '../types';
+import type { Formula, Variable } from '../types';
 import { categoryMap } from '../data/categories';
 import { formulas } from '../data/formulas';
+
+function VariablesList({ variables }: { variables: Variable[] }) {
+  if (variables.length === 0) return null;
+  return (
+    <div className="detail-section">
+      <h3>Variables</h3>
+      <ul className="detail-variables">
+        {variables.map((v) => (
+          <li key={v.symbol}>
+            <span className="var-symbol">{v.symbol}</span>
+            <span className="var-meaning">{v.meaning}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 interface FormulaDetailProps {
   formula: Formula;
@@ -111,46 +128,37 @@ export function FormulaDetail({ formula, originRect, prefill, onClose, onJump }:
           <>
             <VariantPicker variants={formula.variants} index={variantIndex} onChange={setVariantIndex} />
 
-            <FormulaBox key={`box-${formula.id}-${activeVariant.label}`} latex={activeVariant.latex} />
-
-            {activeVariant.variables.length > 0 && (
-              <div className="detail-section">
-                <h3>Variables</h3>
-                <ul className="detail-variables">
-                  {activeVariant.variables.map((v) => (
-                    <li key={v.symbol}>
-                      <span className="var-symbol">{v.symbol}</span>
-                      <span className="var-meaning">{v.meaning}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {activeVariant.calc && (
-              <FormulaCalculator key={`calc-${formula.id}-${activeVariant.label}`} calc={activeVariant.calc} />
+            {activeVariant.calc ? (
+              <FormulaBoxWithCalculator
+                key={`calc-${formula.id}-${activeVariant.label}`}
+                latex={activeVariant.latex}
+                calc={activeVariant.calc}
+              >
+                <VariablesList variables={activeVariant.variables} />
+              </FormulaBoxWithCalculator>
+            ) : (
+              <>
+                <FormulaBox key={`box-${formula.id}-${activeVariant.label}`} latex={activeVariant.latex} />
+                <VariablesList variables={activeVariant.variables} />
+              </>
             )}
           </>
         ) : (
           <>
-            <FormulaBox key={`box-${formula.id}`} latex={formula.latex} />
-
-            {formula.variables.length > 0 && (
-              <div className="detail-section">
-                <h3>Variables</h3>
-                <ul className="detail-variables">
-                  {formula.variables.map((v) => (
-                    <li key={v.symbol}>
-                      <span className="var-symbol">{v.symbol}</span>
-                      <span className="var-meaning">{v.meaning}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {formula.calc && (
-              <FormulaCalculator key={`calc-${formula.id}`} calc={formula.calc} initialValues={prefill} />
+            {formula.calc ? (
+              <FormulaBoxWithCalculator
+                key={`calc-${formula.id}`}
+                latex={formula.latex}
+                calc={formula.calc}
+                initialValues={prefill}
+              >
+                <VariablesList variables={formula.variables} />
+              </FormulaBoxWithCalculator>
+            ) : (
+              <>
+                <FormulaBox key={`box-${formula.id}`} latex={formula.latex} />
+                <VariablesList variables={formula.variables} />
+              </>
             )}
           </>
         )}

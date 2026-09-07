@@ -1101,6 +1101,46 @@ a {
   white-space: nowrap;
 }
 
+/* The worked substitution shown once solving a formula leaves exactly one
+   blank — deliberately smaller and quieter than .detail-formula above it,
+   since it's supporting work rather than the headline equation. Its own
+   horizontal scroll (rather than shrink-to-fit like the main box) is fine
+   here: unlike the primary formula, this is secondary detail nobody needs
+   to read at a glance, and a substituted expression can run considerably
+   wider once every symbol becomes a multi-digit parenthesized number. */
+.detail-formula-work {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: -8px;
+  margin-bottom: 20px;
+  padding: 14px 20px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--glass-border);
+  color: var(--ink-soft);
+  font-size: 15px;
+  overflow-x: auto;
+  /* Same fix as .detail-formula above, for the same reason: setting
+     overflow-x here makes this flex item's automatic min-height resolve
+     to 0 instead of its content size (per spec), which otherwise left
+     flex-shrink free to crush this down to a sliver — showing only a
+     stray scrollbar where the substituted formula and answer belong —
+     whenever the panel's total content ran taller than its fixed height. */
+  flex-shrink: 0;
+}
+
+.detail-formula-work .katex-wrap {
+  display: block;
+  width: max-content;
+  margin: 0 auto;
+}
+
+.detail-formula-work .katex-wrap:last-child {
+  color: var(--ink);
+  font-weight: 600;
+}
+
 .variant-picker {
   position: relative;
 }

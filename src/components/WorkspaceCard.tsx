@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { FormulaBox } from './FormulaBox';
-import { FormulaCalculator } from './FormulaCalculator';
+import { FormulaBoxWithCalculator } from './FormulaBoxWithCalculator';
 import { VariantPicker } from './VariantPicker';
 import type { Formula } from '../types';
 
@@ -82,16 +82,20 @@ export function WorkspaceCard({ formula, x, y, z, scale, onClose, onFocus, onMov
         {formula.variants && formula.variants.length > 0 && activeVariant ? (
           <>
             <VariantPicker variants={formula.variants} index={variantIndex} onChange={setVariantIndex} />
-            <FormulaBox key={`box-${formula.id}-${activeVariant.label}`} latex={activeVariant.latex} />
-            {activeVariant.calc && (
-              <FormulaCalculator key={`calc-${formula.id}-${activeVariant.label}`} calc={activeVariant.calc} />
+            {activeVariant.calc ? (
+              <FormulaBoxWithCalculator
+                key={`calc-${formula.id}-${activeVariant.label}`}
+                latex={activeVariant.latex}
+                calc={activeVariant.calc}
+              />
+            ) : (
+              <FormulaBox key={`box-${formula.id}-${activeVariant.label}`} latex={activeVariant.latex} />
             )}
           </>
+        ) : formula.calc ? (
+          <FormulaBoxWithCalculator key={`calc-${formula.id}`} latex={formula.latex} calc={formula.calc} />
         ) : (
-          <>
-            <FormulaBox key={`box-${formula.id}`} latex={formula.latex} />
-            {formula.calc && <FormulaCalculator key={`calc-${formula.id}`} calc={formula.calc} />}
-          </>
+          <FormulaBox key={`box-${formula.id}`} latex={formula.latex} />
         )}
       </div>
     </div>

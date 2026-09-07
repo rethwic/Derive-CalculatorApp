@@ -16,22 +16,30 @@ function formatSolved(n: number): string {
   return String(Number(n.toPrecision(6)));
 }
 
-// Mount this with a `key` unique to the formula/variant it belongs to — a
-// fresh key remounts it with clean state instead of carrying over another
-// formula's leftover input values. `initialValues` pre-fills specific
-// fields (calc-var key -> value) — e.g. numbers a smart search already
-// parsed out of a sentence — rather than opening every field blank.
-export function FormulaCalculator({ calc, initialValues }: { calc: FormulaCalc; initialValues?: Record<string, number> }) {
-  const [calcValues, setCalcValues] = useState<Record<string, string>>(() => initialCalcValues(calc, initialValues));
+export interface CalculatorState {
+  values: Record<string, string>;
+  onChange: (key: string, raw: string) => void;
+  onReset: () => void;
+  solved: { key: string; value: number } | null;
+}
+
+// Owns everything about a calculator's live state — the field values, and
+// the solve-for-the-one-blank-field computation — independent of how it's
+// rendered. Pulled out of the component itself so FormulaDetail can also
+// read `solved`/`values` to show the same numbers substituted into the
+// formula box above, without a second, separately-typed copy of this
+// state drifting out of sync with what the calculator grid shows.
+export function useCalculatorState(calc: FormulaCalc, initialValues?: Record<string, number>): CalculatorState {
+  const [values, setValues] = useState<Record<string, string>>(() => initialCalcValues(calc, initialValues));
 
   const solved = useMemo(() => {
-    const blankKeys = calc.vars.filter((v) => (calcValues[v.key] ?? '').trim() === '').map((v) => v.key);
+    const blankKeys = calc.vars.filter((v) => (values[v.key] ?? '').trim() === '').map((v) => v.key);
     if (blankKeys.length !== 1) return null;
     const unknownKey = blankKeys[0];
     const known: Record<string, number> = {};
     for (const v of calc.vars) {
       if (v.key === unknownKey) continue;
-      const raw = calcValues[v.key] ?? '';
+      const raw = values[v.key] ?? '';
       const num = Number(raw);
       if (raw.trim() === '' || !Number.isFinite(num)) return null;
       known[v.key] = num;
@@ -39,21 +47,30 @@ export function FormulaCalculator({ calc, initialValues }: { calc: FormulaCalc; 
     const result = solveForUnknown(calc.residual, known, unknownKey);
     if (result === null) return null;
     return { key: unknownKey, value: result };
-  }, [calc, calcValues]);
+  }, [calc, values]);
 
-  function handleChange(key: string, raw: string) {
-    setCalcValues((prev) => ({ ...prev, [key]: raw }));
+  function onChange(key: string, raw: string) {
+    setValues((prev) => ({ ...prev, [key]: raw }));
   }
 
-  function handleReset() {
-    setCalcValues(initialCalcValues(calc, initialValues));
+  function onReset() {
+    setValues(initialCalcValues(calc, initialValues));
   }
+
+  return { values, onChange, onReset, solved };
+}
+
+// Mount this with a `key` unique to the formula/variant it belongs to (via
+// whatever owns the `state` passed in) — a fresh key remounts with clean
+// state instead of carrying over another formula's leftover input values.
+export function FormulaCalculator({ calc, state }: { calc: FormulaCalc; state: CalculatorState }) {
+  const { values, onChange, onReset, solved } = state;
 
   return (
     <div className="detail-section">
       <div className="calc-header">
         <h3>Calculator</h3>
-        <button type="button" className="calc-reset" onClick={handleReset}>
+        <button type="button" className="calc-reset" onClick={onReset}>
           Reset
         </button>
       </div>
@@ -68,10 +85,10 @@ export function FormulaCalculator({ calc, initialValues }: { calc: FormulaCalc; 
                 type="text"
                 inputMode="decimal"
                 className="calc-input"
-                value={isSolved ? formatSolved(solved.value) : calcValues[v.key] ?? ''}
+                value={isSolved ? formatSolved(solved.value) : values[v.key] ?? ''}
                 placeholder="—"
                 readOnly={isSolved}
-                onChange={(e) => handleChange(v.key, e.target.value)}
+                onChange={(e) => onChange(v.key, e.target.value)}
               />
             </label>
           );
