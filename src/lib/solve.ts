@@ -19,9 +19,18 @@ function newtonRaphson(
   for (let i = 0; i < maxIter; i++) {
     const fx = residual({ ...known, [unknownKey]: x });
     if (!Number.isFinite(fx)) return null;
-    if (Math.abs(fx) < tol) return x;
 
-    const h = Math.max(1e-6, Math.abs(x) * 1e-6);
+    // Scaled by |fx| as well as |x| — mass-energy equivalence (E = mc²)
+    // starts the unknown E at a guess like 1 while the residual is already
+    // off by ~5e17 (dominated by c² alone), so a step sized only off of
+    // |x| perturbs E by a fraction of a unit that a subtraction against a
+    // 5e17-magnitude term can't register at all (it's smaller than that
+    // magnitude's own floating-point precision floor). fPlus and fMinus
+    // then round to the identical double, the derivative estimate comes
+    // out exactly zero, and Newton's method never gets to take its first
+    // step. Sizing h off |fx| too keeps the probe big enough to survive
+    // that rounding even before x has grown anywhere near its target.
+    const h = Math.max(1e-6, Math.abs(x) * 1e-6, Math.abs(fx) * 1e-9);
     const fPlus = residual({ ...known, [unknownKey]: x + h });
     const fMinus = residual({ ...known, [unknownKey]: x - h });
     const derivative = (fPlus - fMinus) / (2 * h);
@@ -29,7 +38,13 @@ function newtonRaphson(
 
     const nextX = x - fx / derivative;
     if (!Number.isFinite(nextX)) return null;
-    if (Math.abs(nextX - x) < tol) return nextX;
+    // Relative, not absolute: mass-energy equivalence alone puts the
+    // answer around 1e17 (E = mc², c² ≈ 9e16), where floating-point
+    // precision can't land a step within an absolute 1e-9 of the true
+    // root even once truly converged — the fixed-size step check would
+    // burn through every iteration and return null despite x already
+    // being correct to fifteen-odd significant digits.
+    if (Math.abs(nextX - x) < tol * Math.max(1, Math.abs(x))) return nextX;
     x = nextX;
   }
   return null;
@@ -44,7 +59,12 @@ export function solveForUnknown(
     const result = newtonRaphson(residual, known, unknownKey, guess);
     if (result !== null && Number.isFinite(result)) {
       const check = residual({ ...known, [unknownKey]: result });
-      if (Math.abs(check) < 1e-6) return result;
+      // Same reasoning as above: the residual's own natural scale tracks
+      // the magnitude of the numbers actually in play, not a fixed unit —
+      // a "perfect" answer at the 1e17 scale still leaves a residual of
+      // tens just from float rounding, which a flat 1e-6 would reject.
+      const scale = Math.max(1, Math.abs(result), ...Object.values(known).map(Math.abs));
+      if (Math.abs(check) < 1e-6 * scale) return result;
     }
   }
   return null;

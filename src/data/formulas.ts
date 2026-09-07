@@ -939,7 +939,8 @@ export const formulas: Formula[] = [
     latex: 'x = x_0 + v_0 t + \\frac{1}{2}at^2',
     variables: [
       { symbol: 'x', meaning: 'Position at time t' },
-      { symbol: 'x₀, v₀', meaning: 'Initial position and velocity' },
+      { symbol: 'x₀', meaning: 'Initial position' },
+      { symbol: 'v₀', meaning: 'Initial velocity' },
       { symbol: 't', meaning: 'Time' },
       { symbol: 'a', meaning: 'Acceleration' },
     ],
@@ -963,7 +964,8 @@ export const formulas: Formula[] = [
     latex: '\\theta = \\theta_0 + \\omega_0 t + \\frac{1}{2}\\alpha t^2',
     variables: [
       { symbol: 'θ', meaning: 'Angular position at time t' },
-      { symbol: 'θ₀, ω₀', meaning: 'Initial angular position and angular velocity' },
+      { symbol: 'θ₀', meaning: 'Initial angular position' },
+      { symbol: 'ω₀', meaning: 'Initial angular velocity' },
       { symbol: 't', meaning: 'Time' },
       { symbol: 'α', meaning: 'Angular acceleration' },
     ],

@@ -161,6 +161,12 @@ interface VarMeta {
   key: string;
   symbol: string;
   meaning: string;
+  // A handful of constants (g, the gas constant, G, ...) already carry a
+  // standard value in the formula data — FormulaCalculator pre-fills them
+  // the same way, so a sentence that never mentions "gravity" at all
+  // shouldn't be treated as missing information any more than leaving that
+  // field untouched in the calculator itself would be.
+  defaultValue?: number;
 }
 
 function greedyMatch(vars: VarMeta[], clauses: KnownClause[]): Map<string, { meta: VarMeta; clause: KnownClause }> {
@@ -188,6 +194,7 @@ function greedyMatch(vars: VarMeta[], clauses: KnownClause[]): Map<string, { met
 interface Candidate {
   formula: Formula;
   target: VarMeta;
+  allVars: VarMeta[];
   matched: Map<string, { meta: VarMeta; clause: KnownClause }>;
   score: number;
 }
@@ -205,6 +212,7 @@ function findBestCandidate(targetPhrase: string | null, clauses: KnownClause[]):
       key: v.key,
       symbol: v.symbol,
       meaning: meaningForCalcVar(formula, v),
+      defaultValue: v.defaultValue,
     }));
 
     let target: VarMeta | null = null;
@@ -224,17 +232,22 @@ function findBestCandidate(targetPhrase: string | null, clauses: KnownClause[]):
     const matched = greedyMatch(pool, clauses);
 
     if (!target) {
-      const unmatched = pool.filter((v) => !matched.has(v.key));
+      // A var with a default (g, R, ...) is never a sensible thing to
+      // solve for by elimination — it's the one variable a sentence would
+      // have no reason to omit on purpose, so it doesn't count as "the
+      // one left over" the way a genuinely unmentioned quantity does.
+      const unmatched = pool.filter((v) => !matched.has(v.key) && v.defaultValue === undefined);
       if (unmatched.length !== 1) continue;
       target = unmatched[0];
     }
 
     const required = allVars.filter((v) => v.key !== target!.key);
-    if (matched.size !== required.length) continue;
+    const covered = required.every((v) => matched.has(v.key) || v.defaultValue !== undefined);
+    if (!covered) continue;
 
     const score = matched.size * 10 + (targetPhrase ? 5 : 0);
     if (!best || score > best.score) {
-      best = { formula, target, matched, score };
+      best = { formula, target, allVars, matched, score };
     }
   }
 
@@ -252,20 +265,25 @@ export function parseSmartQuery(rawQuery: string): SmartQueryResult | null {
   const candidate = findBestCandidate(targetPhrase, clauses);
   if (!candidate) return null;
 
-  const { formula, target, matched } = candidate;
+  const { formula, target, allVars, matched } = candidate;
   const knownValues: Record<string, number> = {};
   const knowns: KnownValue[] = [];
   let allHaveValues = true;
-  matched.forEach(({ meta, clause }) => {
-    if (clause.value === undefined) {
+  let anyMatched = false;
+  for (const meta of allVars) {
+    if (meta.key === target.key) continue;
+    const found = matched.get(meta.key);
+    const value = found?.clause.value ?? meta.defaultValue;
+    if (found) anyMatched = true;
+    if (value === undefined) {
       allHaveValues = false;
-      return;
+      continue;
     }
-    knownValues[meta.key] = clause.value;
-    knowns.push({ symbol: meta.symbol, meaning: meta.meaning, value: clause.value, unit: unitForMeaning(meta.meaning) });
-  });
+    knownValues[meta.key] = value;
+    knowns.push({ symbol: meta.symbol, meaning: meta.meaning, value, unit: unitForMeaning(meta.meaning) });
+  }
 
-  if (allHaveValues && matched.size > 0) {
+  if (allHaveValues && anyMatched) {
     const value = solveForUnknown(formula.calc!.residual, knownValues, target.key);
     if (value !== null) {
       return {
