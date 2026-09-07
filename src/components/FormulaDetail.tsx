@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Katex } from './Katex';
+import { FormulaBox } from './FormulaBox';
+import { FormulaCalculator } from './FormulaCalculator';
+import { VariantPicker } from './VariantPicker';
 import type { Formula } from '../types';
 import { categoryMap } from '../data/categories';
 import { formulas } from '../data/formulas';
@@ -8,6 +10,11 @@ import { formulas } from '../data/formulas';
 interface FormulaDetailProps {
   formula: Formula;
   originRect: DOMRect | null;
+  // Calc-var values a smart search already parsed out of a sentence, so
+  // the calculator below opens with those filled in instead of blank.
+  // Only ever meant for the formula's own top-level `calc` — a variant
+  // card (picked after the fact via the dropdown) always opens blank.
+  prefill?: Record<string, number>;
   onClose: () => void;
   onJump: (formula: Formula) => void;
 }
@@ -26,9 +33,27 @@ function panelTarget() {
   };
 }
 
-export function FormulaDetail({ formula, originRect, onClose, onJump }: FormulaDetailProps) {
+export function FormulaDetail({ formula, originRect, prefill, onClose, onJump }: FormulaDetailProps) {
   const [target] = useState(panelTarget);
   const cat = categoryMap[formula.category];
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Jumping between related formulas re-renders this same panel instance in
+  // place (no remount, no exit/enter transition) — so without this, jumping
+  // away while scrolled down on a tall (calculator-equipped) formula would
+  // land the next formula's content at that same stale scroll offset.
+  useEffect(() => {
+    panelRef.current?.scrollTo({ top: 0 });
+  }, [formula.id]);
+
+  // For a multi-shape card (e.g. "Area Formulas"), only one variant is shown
+  // at a time via the dropdown below, picked by index — reset back to the
+  // first shape whenever the panel switches to a different formula card.
+  const [variantIndex, setVariantIndex] = useState(0);
+  useEffect(() => {
+    setVariantIndex(0);
+  }, [formula.id]);
+  const activeVariant = formula.variants?.[variantIndex];
 
   const initial = originRect
     ? {
@@ -68,8 +93,8 @@ export function FormulaDetail({ formula, originRect, onClose, onJump }: FormulaD
   return (
     <div className="detail-scrim" onClick={onClose}>
       <motion.div
+        ref={panelRef}
         className="detail-panel glass"
-        style={{ '--cat-color': cat.color, '--cat-soft': cat.colorSoft } as React.CSSProperties}
         initial={initial}
         animate={{ ...target, opacity: 1 }}
         exit={exit}
@@ -81,22 +106,53 @@ export function FormulaDetail({ formula, originRect, onClose, onJump }: FormulaD
         </button>
         <span className="detail-category">{cat.name}</span>
         <h2 className="detail-title">{formula.title}</h2>
-        <div className="detail-formula">
-          <Katex math={formula.latex} block />
-        </div>
 
-        {formula.variables.length > 0 && (
-          <div className="detail-section">
-            <h3>Variables</h3>
-            <ul className="detail-variables">
-              {formula.variables.map((v) => (
-                <li key={v.symbol}>
-                  <span className="var-symbol">{v.symbol}</span>
-                  <span className="var-meaning">{v.meaning}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+        {formula.variants && formula.variants.length > 0 && activeVariant ? (
+          <>
+            <VariantPicker variants={formula.variants} index={variantIndex} onChange={setVariantIndex} />
+
+            <FormulaBox key={`box-${formula.id}-${activeVariant.label}`} latex={activeVariant.latex} />
+
+            {activeVariant.variables.length > 0 && (
+              <div className="detail-section">
+                <h3>Variables</h3>
+                <ul className="detail-variables">
+                  {activeVariant.variables.map((v) => (
+                    <li key={v.symbol}>
+                      <span className="var-symbol">{v.symbol}</span>
+                      <span className="var-meaning">{v.meaning}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {activeVariant.calc && (
+              <FormulaCalculator key={`calc-${formula.id}-${activeVariant.label}`} calc={activeVariant.calc} />
+            )}
+          </>
+        ) : (
+          <>
+            <FormulaBox key={`box-${formula.id}`} latex={formula.latex} />
+
+            {formula.variables.length > 0 && (
+              <div className="detail-section">
+                <h3>Variables</h3>
+                <ul className="detail-variables">
+                  {formula.variables.map((v) => (
+                    <li key={v.symbol}>
+                      <span className="var-symbol">{v.symbol}</span>
+                      <span className="var-meaning">{v.meaning}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {formula.calc && (
+              <FormulaCalculator key={`calc-${formula.id}`} calc={formula.calc} initialValues={prefill} />
+            )}
+          </>
         )}
 
         {relatedFormulas.length > 0 && (
@@ -105,15 +161,8 @@ export function FormulaDetail({ formula, originRect, onClose, onJump }: FormulaD
             <div className="detail-related">
               {relatedFormulas.map((f) => {
                 if (!f) return null;
-                const relCat = categoryMap[f.category];
                 return (
-                  <button
-                    key={f.id}
-                    type="button"
-                    className="related-chip"
-                    style={{ '--cat-color': relCat.color } as React.CSSProperties}
-                    onClick={() => onJump(f)}
-                  >
+                  <button key={f.id} type="button" className="related-chip" onClick={() => onJump(f)}>
                     {f.label}
                   </button>
                 );

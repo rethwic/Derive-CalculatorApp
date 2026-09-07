@@ -15,8 +15,33 @@ export interface Category {
   id: CategoryId;
   name: string;
   short: string;
-  color: string;
-  colorSoft: string;
+}
+
+export type SubjectId = 'math' | 'science' | 'tech';
+
+export interface Subject {
+  id: SubjectId;
+  name: string;
+  tagline: string;
+  categories: CategoryId[];
+}
+
+export interface CalcVar {
+  key: string;
+  symbol: string;
+  defaultValue?: number;
+}
+
+export interface FormulaCalc {
+  vars: CalcVar[];
+  residual: (values: Record<string, number>) => number;
+}
+
+export interface FormulaVariant {
+  label: string;
+  latex: string;
+  variables: Variable[];
+  calc?: FormulaCalc;
 }
 
 export interface Formula {
@@ -28,13 +53,10 @@ export interface Formula {
   variables: Variable[];
   related?: string[];
   keywords?: string[];
-}
-
-export interface AxialCoord {
-  q: number;
-  r: number;
-}
-
-export interface PlacedFormula extends Formula {
-  pos: AxialCoord;
+  calc?: FormulaCalc;
+  // When present, the detail view renders one mini formula+variables+
+  // calculator block per variant instead of the top-level latex/variables/
+  // calc — used for cards that bundle several shapes under one topic (e.g.
+  // "Area Formulas": rectangle, circle, triangle, trapezoid).
+  variants?: FormulaVariant[];
 }

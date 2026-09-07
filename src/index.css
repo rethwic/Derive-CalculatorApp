@@ -1,6 +1,7 @@
 :root {
-  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'SF Pro',
-    'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
+  --font-display: 'Space Grotesk', var(--font-sans);
   --bg-base: #f7f7f9;
   --ink: #1c1c1e;
   --ink-soft: rgba(28, 28, 30, 0.56);
@@ -8,6 +9,20 @@
   --glass-border: rgba(255, 255, 255, 0.65);
   --glass-highlight: rgba(255, 255, 255, 0.95);
   --glass-shadow: rgba(60, 64, 90, 0.14);
+
+  /* One color family for the entire site — a single indigo/blue accent, not
+     a palette-per-category. --brand-a/b/c form the title's gradient (light
+     blue easing through indigo into deep navy — depth, not a rainbow);
+     --brand-color/--brand-soft are the flat accent used everywhere else
+     (headings, hovers, focus rings, active states), so every "something
+     happens with color" moment in the app reads as the same brand. */
+  --brand-a: #60a5fa;
+  --brand-b: #4f46e5;
+  --brand-c: #312e81;
+  --brand-gradient: linear-gradient(90deg, var(--brand-a) 0%, var(--brand-b) 55%, var(--brand-c) 100%);
+  --brand-color: var(--brand-b);
+  --brand-soft: rgba(79, 70, 229, 0.14);
+
   color-scheme: light;
 }
 
@@ -18,7 +33,7 @@
 html,
 body,
 #root {
-  height: 100%;
+  min-height: 100%;
   margin: 0;
 }
 
@@ -26,9 +41,13 @@ body {
   font-family: var(--font-sans);
   background: var(--bg-base);
   color: var(--ink);
-  overflow: hidden;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* Safety net: nothing on a subject page should ever need to scroll
+     sideways (that was the search-bar overflow bug above), so guard
+     against it outright rather than relying on every element individually
+     staying within bounds. */
+  overflow-x: hidden;
 }
 
 button,
@@ -36,27 +55,29 @@ input {
   font-family: inherit;
 }
 
+a {
+  color: inherit;
+}
+
 .app-shell {
   position: relative;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
 }
 
 /* ---------------- Background ---------------- */
 
-/* Near-white base with soft, low-opacity cool blue + lavender radial washes
-   — gentle depth, no visible "blob" shapes, nothing that competes with the
-   glass circles for attention. Static (no animation): the point is quiet
+/* Near-white base with a soft, low-opacity blue/indigo wash — one hue
+   family, not a multi-color blend — for gentle depth without competing
+   with the glass surfaces. Static (no animation): the point is quiet
    depth, not motion. */
 .aurora {
   position: fixed;
   inset: 0;
   z-index: 0;
   background:
-    radial-gradient(ellipse 900px 700px at 12% 8%, rgba(10, 132, 255, 0.07), transparent 60%),
-    radial-gradient(ellipse 800px 800px at 88% 10%, rgba(175, 110, 240, 0.055), transparent 62%),
-    radial-gradient(ellipse 1000px 800px at 50% 105%, rgba(90, 170, 250, 0.05), transparent 65%),
+    radial-gradient(ellipse 900px 700px at 12% 8%, rgba(79, 70, 229, 0.08), transparent 60%),
+    radial-gradient(ellipse 800px 800px at 88% 10%, rgba(96, 165, 250, 0.07), transparent 62%),
+    radial-gradient(ellipse 1000px 800px at 50% 105%, rgba(79, 70, 229, 0.06), transparent 65%),
     var(--bg-base);
 }
 
@@ -72,64 +93,177 @@ input {
     0 8px 28px var(--glass-shadow);
 }
 
-/* ---------------- Top bar ---------------- */
+/* ---------------- Landing page ---------------- */
 
-.top-bar {
-  position: fixed;
-  top: 20px;
-  left: 0;
-  right: 0;
-  z-index: 20;
+/* The title owns the bulk of the screen; search + subject pills are anchored
+   near the bottom instead of forming a centered group with it. `pointer-
+   events: none` on the wrapper lets mouse-move reach the FloatingSymbols
+   layer underneath everywhere except the specific controls that opt back
+   in with `pointer-events: auto`. */
+.landing-page {
+  position: relative;
+  z-index: 1;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 0 20px;
+  padding: 32px 20px 48px;
   pointer-events: none;
 }
 
-.top-bar > * {
-  pointer-events: auto;
-}
-
-.brand {
+.landing-hero {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: 999px;
-  font-weight: 600;
-  font-size: 15px;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
+  justify-content: center;
 }
 
-.brand-mark {
-  font-size: 18px;
-  background: linear-gradient(135deg, #0a84ff, #bf5af2);
+.landing-search-group {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: min(480px, 90vw);
+}
+
+/* ---------------- Landing title ---------------- */
+
+/* No card, no backdrop — the title itself is the liquid material: the
+   gradient fill plus a bright top-edge highlight and a soft dark
+   underside (the text-shadow pair below) read as a glassy, glossy
+   surface. The edge glitch was specifically the per-pixel SVG ripple
+   filter tried earlier (warping individual pixels is inherently fragile
+   at large font sizes) — that's gone for good, but the glass sheen itself
+   was never the problem, so it stays. "Liquid" now comes from two
+   uniform, artifact-free transforms: a continuously flowing gradient
+   (color never sits still) and a very slight breathing scale — both
+   animate whole-element properties, so there's nothing left to deform at
+   the edges. */
+.landing-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(6rem, 21vw, 14rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 0.92;
+  background: var(--brand-gradient);
+  background-size: 220% 100%;
+  background-position: 0% 50%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  font-weight: 700;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55), 0 -1px 1px rgba(255, 255, 255, 0.35);
+  filter: drop-shadow(0 24px 48px rgba(79, 70, 229, 0.24));
+  cursor: default;
+  animation: landing-title-flow 10s ease-in-out infinite, landing-title-breathe 7s ease-in-out infinite;
 }
 
-/* ---------------- Search bar ---------------- */
+@keyframes landing-title-flow {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
 
+@keyframes landing-title-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.012);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-title {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .landing-title {
+    font-size: clamp(3.75rem, 22vw, 6.5rem);
+  }
+}
+
+/* ---------------- Symbol grid (background) ---------------- */
+
+/* A "polka dot" texture where the dots are tiny math symbols — static and
+   quiet at rest, lighting up into a little spotlight cluster around the
+   cursor. Sits behind everything (z-index: 0) but still receives pointer
+   events, since .landing-page is pointer-events: none except where
+   individual controls opt back in. */
+.symbol-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.symbol-grid-dot {
+  position: absolute;
+  transform: translate(-50%, -50%) scale(1);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 11px;
+  color: rgb(146, 149, 166);
+  opacity: 0.14;
+  will-change: transform, opacity, color;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .symbol-grid {
+    pointer-events: none;
+  }
+}
+
+/* ---------------- Search ---------------- */
+
+/* Fills whatever width its container gives it, rather than imposing its
+   own — the container decides how much room search gets (landing page vs.
+   the narrower slot in a subject page's header). Previously this forced
+   480px regardless of container, which on subject pages overflowed past
+   the header's 300px search slot — the cut-off bar and the resulting
+   horizontal scrollbar were the same bug. */
+.global-search {
+  position: relative;
+  width: 100%;
+}
+
+/* The resting trigger: looks exactly like the old static search bar, but
+   it's a plain clickable div (no real input) — clicking it is what
+   physically expands the real bar into .search-expand-panel below. */
 .search-bar {
   display: flex;
   align-items: center;
   gap: 10px;
-  width: min(440px, 60vw);
-  padding: 11px 16px;
+  width: 100%;
+  padding: 13px 18px;
   border-radius: 999px;
-  transition: box-shadow 0.25s ease;
 }
 
-.search-bar:focus-within {
-  box-shadow:
-    inset 0 1px 0 var(--glass-highlight),
-    0 0 0 2px rgba(10, 132, 255, 0.55),
-    0 8px 32px rgba(0, 0, 0, 0.35);
+.search-bar-placeholder {
+  flex: 1;
+  min-width: 0;
+  color: var(--ink-soft);
+  font-size: 15px;
+  text-align: left;
+  /* In the narrower subject-page search slot, this text has no room to fit
+     on one line and was wrapping to two — inflating the whole bar's height
+     (and, since the expanded panel reuses that measured height, the
+     expanded bar too). Truncate instead of wrapping. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .search-icon {
@@ -139,24 +273,30 @@ input {
   flex-shrink: 0;
 }
 
-.search-bar input {
+/* The real input's row, inside the expanded panel. */
+.search-bar-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 18px;
+}
+
+.search-bar-inner input {
   flex: 1;
   min-width: 0;
   background: transparent;
   border: none;
   outline: none;
   color: var(--ink);
+  /* Matches .search-bar-placeholder exactly (font-size, padding, gap are
+     all identical between resting and expanded) so the panel's fixed
+     origin.height always exactly fits this content — no mismatch, no
+     stretched-looking pill. */
   font-size: 15px;
 }
 
-.search-bar input::placeholder {
+.search-bar-inner input::placeholder {
   color: var(--ink-soft);
-}
-
-.search-count {
-  font-size: 12px;
-  color: var(--ink-soft);
-  white-space: nowrap;
 }
 
 .search-clear {
@@ -179,126 +319,683 @@ input {
   background: rgba(0, 0, 0, 0.14);
 }
 
-/* ---------------- Honeycomb ---------------- */
-
-.honeycomb-viewport {
-  position: absolute;
+/* A dim scrim behind the panel — click it (or Escape) to collapse the bar
+   back to where it started. */
+.search-scrim {
+  position: fixed;
   inset: 0;
-  z-index: 1;
-  cursor: grab;
-  touch-action: none;
-  overscroll-behavior: contain;
+  z-index: 55;
+  background: rgba(60, 64, 90, 0.18);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
-.honeycomb-viewport:active {
-  cursor: grabbing;
-}
-
-.honeycomb-world {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 0;
-  height: 0;
-  transform-origin: 0 0;
-  will-change: transform;
-}
-
-.fc-card {
-  position: absolute;
-  width: 116px;
-  height: 116px;
-  border-radius: 50%;
-  transform-origin: center center;
-  will-change: transform, opacity;
-  cursor: pointer;
-  transition: opacity 0.35s ease;
-}
-
-/* Composes .glass directly (same class the search bar and detail panel use)
-   plus a per-subject color wash below — the exact material the detail view
-   uses, just circular, not a separate recipe tuned to look similar. */
-.fc-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+/* The bar itself physically travels from its resting position/size to
+   this fixed, centered, larger one (see GlobalSearch.tsx's initial/animate
+   rects) — not a separate panel appearing elsewhere. Results attach
+   directly below, inside the same block, once something's typed. */
+.search-expand-panel {
+  position: fixed;
+  z-index: 60;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 20px 48px rgba(60, 64, 90, 0.28);
 }
 
-/* Same wash .detail-panel::before uses (radial-gradient at a corner, faded
-   via var(--cat-soft)), just adapted from a rectangular band to a circle. */
-.fc-ring::before {
+/* A standalone card, not part of the search bar's own box — it has its own
+   position/size and animates independently, so a changing result count
+   only ever resizes this card, never the bar above it. */
+.search-results-card {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  border-radius: 22px;
+  max-height: min(50vh, 440px);
+  overflow-y: auto;
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 20px 48px rgba(60, 64, 90, 0.28);
+  /* Scroll still works (wheel, trackpad, touch) — the track/thumb chrome is
+     just not drawn, per request. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.search-results-card::-webkit-scrollbar {
+  display: none;
+}
+
+.search-empty {
+  padding: 18px;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.search-result {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+
+.search-result:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.search-result-formula {
+  flex-shrink: 0;
+  min-width: 64px;
+  display: flex;
+  justify-content: center;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.search-result-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.search-result-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-result-category {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--brand-color);
+}
+
+/* A formula-match row that a sentence-shaped query resolved to — same
+   shell as a normal result, just with a badge instead of the category
+   line, so it reads as "found via search" rather than "computed". */
+.search-result-smart {
+  background: rgba(79, 70, 229, 0.07);
+}
+
+.search-result-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--brand-color);
+}
+
+/* The one card type that carries an actual computed number rather than
+   just pointing at a formula — set apart with the brand gradient so a
+   "formula for velocity when I know..." query visibly answers itself
+   instead of reading as just another result in the list. */
+.search-smart-answer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  margin-bottom: 4px;
+  border-radius: 16px;
+  border: none;
+  background: var(--brand-gradient);
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.search-smart-answer-value {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.search-smart-answer-source {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.search-smart-answer-source .katex-wrap {
+  color: #fff;
+}
+
+.search-smart-answer-knowns {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* ---------------- Subject pills (landing) ---------------- */
+
+/* width: 100% (rather than shrink-to-fit + center, as it was with 3 cards)
+   makes this span exactly as wide as .global-search above it — both are
+   100% of the same .landing-search-group — so Math's left edge and
+   Workspace's right edge land exactly on the search bar's own edges. */
+.subject-grid {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.subject-card {
+  position: relative;
+  overflow: hidden;
+  flex: 1;
+  padding: 13px 10px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  text-align: center;
+  color: var(--ink);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.subject-card::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 25% 20%, var(--cat-soft), transparent 65%);
+  background: radial-gradient(circle at 25% 20%, var(--brand-soft), transparent 70%);
   pointer-events: none;
 }
 
-.fc-inner {
-  position: absolute;
-  inset: 0;
+.subject-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--brand-color);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 10px 22px rgba(60, 64, 90, 0.16);
+}
+
+/* ---------------- Subject page ---------------- */
+
+.subject-page {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 24px 100px;
+}
+
+.subject-page-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 48px;
+}
+
+.subject-page-home {
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.subject-switcher {
+  display: flex;
+  gap: 8px;
+}
+
+/* Used for both <Link> (subject switcher) and <button> (category filter)
+   elements, so it resets button-specific UA styles too. */
+.subject-pill {
+  padding: 9px 16px;
+  border: none;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-decoration: none;
+  background: rgba(0, 0, 0, 0.045);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.subject-pill:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.subject-pill-active {
+  color: #fff;
+  background: var(--brand-color);
+}
+
+.subject-pill-active:hover {
+  background: var(--brand-color);
+}
+
+.subject-page-search {
+  margin-left: auto;
+  /* Explicit flex-basis + max-width rather than width: min(300px, 100%) —
+     as a flex item, that width's 100% branch resolved against the flex
+     container's leftover space rather than clamping the way a block
+     element would, letting the search bar grow far past 300px. */
+  flex: 0 1 300px;
+  max-width: 300px;
+}
+
+.subject-page-title {
+  position: relative;
+  padding: 8px 0 28px;
+}
+
+.subject-page-title h1 {
+  margin: 0;
+  font-size: clamp(32px, 5vw, 44px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--brand-color);
+}
+
+.category-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -8px 0 32px;
+}
+
+.subject-page-title p {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-size: 15px;
+}
+
+.category-section {
+  margin-bottom: 44px;
+}
+
+.category-heading {
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0 0 16px;
+  padding-left: 14px;
+  border-left: 4px solid var(--brand-color);
+}
+
+.formula-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 14px;
+}
+
+/* ---------------- Contact page ---------------- */
+
+/* Deliberately its own narrow, centered composition rather than the
+   subject-page grid shell — this is a single focused form, not a browsable
+   category of content, and (per its one and only entry point, the landing
+   page's own quiet link) it isn't meant to feel like a sibling of
+   Math/Science/Workspace in the site's structure. */
+.contact-page {
+  position: relative;
+  z-index: 1;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 88px 24px 100px;
+}
+
+.contact-back {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.contact-hero {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.contact-hero-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 18px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
-  text-align: center;
+  color: #fff;
+  background: var(--brand-gradient);
+  box-shadow: 0 12px 26px rgba(79, 70, 229, 0.32);
 }
 
-.fc-title {
-  color: var(--ink);
+.contact-hero-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.contact-hero h1 {
+  margin: 0 0 10px;
+  font-size: clamp(28px, 4vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--brand-color);
+}
+
+.contact-hero p {
+  margin: 0 auto;
+  max-width: 46ch;
+  color: var(--ink-soft);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 32px;
+  border-radius: 28px;
+}
+
+.contact-field-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.contact-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Only inside the horizontal name/email row does "220px" mean width — flex-
+   basis follows the flex CONTAINER's main axis, and .contact-field is also
+   used directly inside .contact-form's column layout (the topic group, the
+   message field), where the same rule would set a 220px height floor
+   instead and blow those out with dead space. */
+.contact-field-row > .contact-field {
+  flex: 1 1 200px;
+  /* A text input's default flex min-width is "auto", which resolves to its
+     own intrinsic preferred width (a plain <input> defaults toward ~20
+     characters) rather than the 200px basis above — that's what was
+     forcing a wrap even though two 200px fields plus the gap fit
+     comfortably. */
+  min-width: 0;
+}
+
+.contact-label {
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
-}
-
-.fc-card.is-dimmed .fc-ring {
-  filter: grayscale(0.6);
-}
-
-.fc-card.is-peak {
-  cursor: pointer;
-}
-
-/* The hovered card reads as "lit" material, not "outlined" UI: a brighter
-   glass edge, a deeper internal color wash, and a soft diffuse glow (no hard
-   ring) bleeding out from behind it, plus a taller elevation shadow. All of
-   it soft-edged, so it stays a property of the glass rather than a border
-   drawn on top of it. */
-.fc-card.is-peak .fc-ring::before {
-  background: radial-gradient(circle at 25% 20%, var(--cat-soft), transparent 72%);
-}
-
-.fc-card.is-peak .fc-ring {
-  border-color: rgba(255, 255, 255, 0.85);
-  box-shadow:
-    inset 0 1px 0 var(--glass-highlight),
-    0 0 30px 6px var(--cat-soft),
-    0 20px 38px rgba(60, 64, 90, 0.26);
-}
-
-/* ---------------- Hint pill ---------------- */
-
-.hint-pill {
-  position: fixed;
-  bottom: 26px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 15;
-  padding: 10px 20px;
-  border-radius: 999px;
-  font-size: 13px;
   color: var(--ink-soft);
-  white-space: nowrap;
-  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.contact-field input,
+.contact-field textarea {
+  border: 1px solid rgba(28, 28, 30, 0.12);
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.6);
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.contact-field input:focus,
+.contact-field textarea:focus {
+  border-color: var(--brand-color);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+.contact-field input::placeholder,
+.contact-field textarea::placeholder {
+  color: var(--ink-soft);
+}
+
+.contact-topic-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* A bigger, icon-led target than a plain text pill — this is the first
+   decision the form asks for, so it gets more visual weight than the
+   plain-text subject-pill convention used elsewhere in the site. */
+.contact-topic-btn {
+  flex: 1 1 140px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1.5px solid rgba(28, 28, 30, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.contact-topic-btn:hover {
+  border-color: var(--brand-color);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.contact-topic-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.contact-topic-btn-active,
+.contact-topic-btn-active:hover {
+  /* Not just a transparent-colored border: a solid border and a gradient
+     background paint as two separate layers, and at a rounded corner their
+     anti-aliasing doesn't quite line up — a thin seam traces the curve even
+     though the border itself is invisible. Removing the border outright
+     (rather than merely hiding its color) avoids that entirely; the ~3px
+     it changes the box by across two edges is not something a viewer
+     switching between tabs would ever notice. */
+  border: none;
+  color: #fff;
+  background: var(--brand-gradient);
+}
+
+.contact-submit-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.contact-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 26px;
+  border: none;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--brand-gradient);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  box-shadow: 0 10px 22px rgba(79, 70, 229, 0.28);
+}
+
+.contact-submit svg {
+  width: 17px;
+  height: 17px;
+}
+
+.contact-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.contact-submit:disabled {
+  opacity: 0.4;
+  cursor: default;
+  box-shadow: none;
+  transform: none;
+}
+
+.contact-submit-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 48ch;
+}
+
+.contact-submit-hint svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  opacity: 0.8;
+}
+
+@media (max-width: 560px) {
+  .contact-page {
+    padding-top: 76px;
+  }
+  .contact-back {
+    top: 14px;
+    left: 14px;
+  }
+  .contact-form {
+    padding: 22px;
+  }
+}
+
+/* A quiet secondary link rather than a subject-card tile — a recommendation
+   isn't a content subject on par with Math/Science/Workspace, so it reads
+   better as a smaller, lower-emphasis invitation underneath the grid. */
+.landing-contact-link {
+  pointer-events: auto;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.landing-contact-link:hover {
+  color: var(--brand-color);
+}
+
+/* ---------------- Formula grid card ---------------- */
+
+.fgc {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px 14px;
+  min-height: 118px;
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.fgc::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 25% 20%, var(--brand-soft), transparent 65%);
   pointer-events: none;
 }
 
-.hint-hidden {
-  opacity: 0;
-  transform: translateX(-50%) translateY(8px);
+.fgc:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 16px 30px rgba(60, 64, 90, 0.2);
+}
+
+.fgc-formula {
+  position: relative;
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.fgc-title {
+  position: relative;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  line-height: 1.3;
+}
+
+.fgc-add {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--brand-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.fgc-add svg {
+  width: 14px;
+  height: 14px;
+}
+
+.fgc:hover .fgc-add,
+.fgc-add:hover,
+.fgc-add:focus-visible {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.fgc-add:active {
+  transform: scale(0.88);
+}
+
+.fgc-add-done {
+  opacity: 1;
+  background: var(--brand-color);
+  color: #fff;
+  border-color: var(--brand-color);
 }
 
 /* ---------------- Detail overlay ---------------- */
@@ -320,6 +1017,14 @@ input {
   flex-direction: column;
   gap: 18px;
   overflow-y: auto;
+  /* Scroll still works (wheel, trackpad, touch) — the track/thumb chrome is
+     just not drawn, per request. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.detail-panel::-webkit-scrollbar {
+  display: none;
 }
 
 .detail-panel::before {
@@ -329,7 +1034,7 @@ input {
   left: 0;
   right: 0;
   height: 140px;
-  background: radial-gradient(ellipse at 20% 0%, var(--cat-soft), transparent 70%);
+  background: radial-gradient(ellipse at 20% 0%, var(--brand-soft), transparent 70%);
   pointer-events: none;
 }
 
@@ -360,7 +1065,7 @@ input {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--cat-color);
+  color: var(--brand-color);
 }
 
 .detail-title {
@@ -380,7 +1085,114 @@ input {
   align-items: center;
   justify-content: center;
   font-size: 22px;
-  overflow-x: auto;
+  overflow: hidden;
+  /* .detail-panel has a fixed height with overflow-y:auto for scrolling —
+     but that same overflow setting makes a flex child's automatic min-size
+     resolve to 0 (per spec) instead of its content size, so without this,
+     flex-shrink was free to squeeze this box shorter than the formula
+     actually needs whenever a tall card's total content overflowed the
+     panel, instead of just letting the panel scroll. */
+  flex-shrink: 0;
+}
+
+.detail-formula-scale {
+  display: inline-block;
+  transform-origin: center;
+  white-space: nowrap;
+}
+
+.variant-picker {
+  position: relative;
+}
+
+.variant-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: 14px;
+  /* Matches .detail-formula's recipe rather than the raw .glass utility:
+     this control sits nested inside an already-blurred .glass panel, so a
+     second backdrop-filter has nothing further to blur and reads as flat.
+     A frosted fill + inset highlight + its own drop shadow is what actually
+     reads as a distinct glass surface here. */
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 4px 14px rgba(60, 64, 90, 0.1);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.variant-trigger:hover {
+  border-color: var(--brand-color);
+  background-color: rgba(255, 255, 255, 0.75);
+}
+
+.variant-trigger:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: -1px;
+}
+
+.variant-chevron {
+  width: 12px;
+  height: 8px;
+  color: var(--brand-color);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.variant-trigger[aria-expanded='true'] .variant-chevron {
+  transform: rotate(180deg);
+}
+
+/* The popup itself is a real DOM element (unlike a native <select>'s
+   OS-rendered list, which ignores almost all CSS) — a floating .glass card
+   in the same style as the search results dropdown, so it actually blurs
+   and tints the panel content behind it. */
+.variant-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  padding: 6px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 20px 48px rgba(60, 64, 90, 0.28);
+}
+
+.variant-option {
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.variant-option:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.variant-option-active {
+  color: var(--brand-color);
+  background: var(--brand-soft);
 }
 
 .detail-section h3 {
@@ -414,11 +1226,94 @@ input {
 .var-symbol {
   font-weight: 700;
   min-width: 74px;
-  color: var(--cat-color);
+  color: var(--brand-color);
 }
 
 .var-meaning {
   color: var(--ink-soft);
+}
+
+.calc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.calc-header h3 {
+  margin: 0;
+}
+
+.calc-reset {
+  border: none;
+  background: none;
+  color: var(--brand-color);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.calc-reset:hover {
+  text-decoration: underline;
+}
+
+.calc-hint {
+  margin: -4px 0 12px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.calc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.calc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid transparent;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.calc-row-solved {
+  border-color: var(--brand-color);
+  background: var(--brand-soft);
+}
+
+.calc-symbol {
+  font-weight: 700;
+  color: var(--brand-color);
+  min-width: 52px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.calc-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  color: var(--ink);
+}
+
+.calc-row-solved .calc-input {
+  background: transparent;
+  color: var(--brand-color);
+  font-weight: 700;
+}
+
+.calc-input:focus {
+  outline: 2px solid var(--brand-color);
+  outline-offset: -1px;
 }
 
 .detail-related {
@@ -441,7 +1336,949 @@ input {
 
 .related-chip:hover {
   background: rgba(255, 255, 255, 0.85);
-  border-color: var(--cat-color);
+  border-color: var(--brand-color);
+}
+
+/* ---------------- Workspace ---------------- */
+
+.workspace-page {
+  position: relative;
+  z-index: 1;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* A slim hover strip along the left edge — the icons themselves live inside
+   it (not just a trigger next to it), so moving from the empty edge onto an
+   icon never leaves the hoverable area and closes the menu prematurely. */
+.workspace-edge-zone {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 96px;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 14px;
+  padding-left: 20px;
+}
+
+.workspace-edge-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  /* A literal 24px rather than 50% — this is the exact radius the resize
+     button's shape-morph target (the zoom slider pill, also 48px tall)
+     uses too, so the shared layout animation between them only has to
+     tween width/position, not the radius itself. */
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  cursor: pointer;
+  text-decoration: none;
+  /* Hidden off-screen until the edge zone opens — see
+     .workspace-edge-zone-open below. */
+  transform: translateX(-72px);
+  opacity: 0;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+}
+
+.workspace-edge-zone-open .workspace-edge-icon {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.workspace-edge-zone .workspace-edge-icon:nth-child(1) {
+  transition-delay: 0s;
+}
+.workspace-edge-zone .workspace-edge-icon:nth-child(2) {
+  transition-delay: 0.03s;
+}
+.workspace-edge-zone .workspace-edge-icon:nth-child(3) {
+  transition-delay: 0.06s;
+}
+.workspace-edge-zone .workspace-edge-icon:nth-child(4) {
+  transition-delay: 0.09s;
+}
+
+.workspace-edge-icon:hover {
+  border-color: var(--brand-color);
+  color: var(--brand-color);
+}
+
+.workspace-edge-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* The resize icon and the zoom slider are one and the same shape — a single
+   element whose width Framer Motion animates open (spring, so it "grows"
+   rather than snaps), not two separate elements crossfaded via a shared
+   layoutId. That approach was prone to visible jitter/distortion as the
+   icon and slider content stretched non-uniformly with the box; animating
+   width directly on one persistent element sidesteps it entirely. */
+.workspace-resize-shape {
+  position: relative;
+  overflow: hidden;
+}
+
+.workspace-resize-icon-btn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.workspace-resize-icon-btn:hover {
+  color: var(--brand-color);
+}
+
+.workspace-resize-icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.workspace-zoom-slider-wrap {
+  position: absolute;
+  inset: 0;
+}
+
+.workspace-zoom-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  padding: 0 16px;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+/* No thumb at all — the track itself is the control. Click or drag
+   anywhere on it and the filled portion grows to meet the pointer, which
+   reads as a single continuous gesture instead of "grab this dot." */
+.workspace-zoom-track {
+  position: relative;
+  flex: 1;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  touch-action: none;
+  outline: none;
+}
+
+/* Keyboard-only focus ring, scoped to the track itself rather than the
+   browser's default outline (which drew a box around the whole pill). */
+.workspace-zoom-track:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: 4px;
+  border-radius: 999px;
+}
+
+.workspace-zoom-track::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 4px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.workspace-zoom-fill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--brand-color);
+  transform: translateY(-50%);
+  box-shadow: 0 0 0 rgba(79, 70, 229, 0);
+  transition: box-shadow 0.15s ease;
+}
+
+/* While actively dragging: a subtle glow along the fill, the closest thing
+   to a "handle" this slider has — it lives at the fill's own edge instead
+   of being a separate shape sitting on top of it. */
+.workspace-zoom-track-active .workspace-zoom-fill {
+  box-shadow: 0 0 6px rgba(79, 70, 229, 0.4);
+}
+
+.workspace-zoom-percent {
+  min-width: 40px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.workspace-canvas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  /* Dragging to pan is a mousedown-and-move gesture, which is exactly what
+     the browser's own text-selection also responds to — without this, every
+     pan drag also highlighted the empty-state hint text underneath it. */
+  user-select: none;
+}
+
+.workspace-canvas:active {
+  cursor: grabbing;
+}
+
+.workspace-world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.workspace-grid {
+  position: absolute;
+  left: -6000px;
+  top: -6000px;
+  width: 12000px;
+  height: 12000px;
+  background-image: radial-gradient(rgba(79, 70, 229, 0.22) 1.5px, transparent 1.5px);
+  background-size: 28px 28px;
+  pointer-events: none;
+}
+
+.workspace-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
+  pointer-events: none;
+  color: var(--ink-soft);
+  /* A brief tip, not a permanent fixture: fully visible at first, then
+     fades out on its own. Re-mounting this element (e.g. clearing the
+     workspace back to empty later) restarts the animation from scratch. */
+  animation: workspace-hint-fade 6s ease forwards;
+}
+
+@keyframes workspace-hint-fade {
+  0%,
+  65% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.workspace-empty p {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.workspace-empty-hint {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+.workspace-card {
+  position: absolute;
+  width: 340px;
+  border-radius: 22px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workspace-card-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 10px 12px 16px;
+  cursor: grab;
+  background: rgba(255, 255, 255, 0.35);
+  border-bottom: 1px solid var(--glass-border);
+  touch-action: none;
+  user-select: none;
+}
+
+.workspace-card-header:active {
+  cursor: grabbing;
+}
+
+.workspace-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workspace-card-close {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--ink);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.workspace-card-close:hover {
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.workspace-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  max-height: 60vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.workspace-card-body::-webkit-scrollbar {
+  display: none;
+}
+
+.workspace-card .detail-formula {
+  font-size: 18px;
+  padding: 20px 14px;
+}
+
+.workspace-card .calc-grid {
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+}
+
+/* ---------------- Graphing calculator (global) ---------------- */
+
+/* A handle docked to the dead center of the right edge on every page — a
+   full circle in the same language as the workspace's own round icon
+   buttons (rather than a tall pill, which read as a foreign shape here),
+   sitting just off the edge instead of being sliced in half by it. */
+.calculator-pull-tab {
+  position: fixed;
+  top: 50%;
+  right: 20px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, color 0.2s ease;
+}
+
+.calculator-pull-tab:hover {
+  transform: translateY(-50%) scale(1.06);
+  border-color: var(--brand-color);
+  color: var(--brand-color);
+}
+
+.calculator-pull-tab svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* A floating card inset from every edge — not a docked sidebar — so the
+   page stays visible as a slim frame all the way around instead of the
+   panel butting flush against the screen's own edges. */
+.calculator-panel {
+  position: fixed;
+  inset: 10px;
+  z-index: 31;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 28px;
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 32px 72px rgba(60, 64, 90, 0.28);
+}
+
+/* Lives inside the sidebar column now, not spanning the panel's full
+   width — the graph no longer has any bar running across its own top, only
+   the floating controls overlaid directly on it. Every icon here does
+   something (add a row, undo, redo), rather than spending the row on a
+   static title. */
+.calculator-sidebar-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(28, 28, 30, 0.08);
+}
+
+.calculator-toolbar-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calculator-toolbar-btn:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--brand-color);
+}
+
+.calculator-toolbar-btn:disabled {
+  color: var(--ink-soft);
+  opacity: 0.35;
+  cursor: default;
+}
+
+.calculator-toolbar-btn svg {
+  width: 17px;
+  height: 17px;
+}
+
+.calculator-chevrons-flipped {
+  display: flex;
+  transform: rotate(180deg);
+}
+
+.calculator-panel-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+/* The animated element (width springs to 0 to collapse) just clips —
+   the fixed-width inner div is what actually holds the padding/scroll, so
+   its content doesn't reflow or squish mid-animation, only gets clipped. */
+.calculator-expression-list {
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.calculator-sidebar-wrap {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.calculator-expression-list-inner {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* Sits between the expression list and the graph as a normal (non-
+   animated) flex item, so — unlike a button placed inside the collapsing
+   sidebar itself — it stays put and reachable at the panel's edge no
+   matter how narrow that sidebar currently is, including fully collapsed. */
+.calculator-sidebar-toggle {
+  flex-shrink: 0;
+  width: 16px;
+  align-self: stretch;
+  border: none;
+  /* --glass-border reads as basically invisible against this panel's pale
+     surface (see .calculator-expr-row above) — same fix here. */
+  border-right: 1px solid rgba(28, 28, 30, 0.08);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calculator-sidebar-toggle:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--brand-color);
+}
+
+.calculator-sidebar-toggle svg {
+  width: 12px;
+  height: 12px;
+}
+
+.calculator-expr-row {
+  padding: 10px 4px;
+  /* --glass-border is a bright highlight meant for a glass edge against a
+     colorful backdrop — nearly invisible here against the list's own pale
+     surface, so this needs an actual dark divider instead. */
+  border-bottom: 1px solid rgba(28, 28, 30, 0.08);
+}
+
+.calculator-expr-row-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The row's index — colored in to match its curve once it's plotted.
+   Empty rows (the always-present trailing blank one, mainly) show it
+   faded until you actually click into the row, echoing Desmos' own list. */
+.calculator-expr-number {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  background: rgba(0, 0, 0, 0.06);
+  transition: opacity 0.15s ease;
+}
+
+.calculator-expr-row-empty .calculator-expr-number {
+  opacity: 0.4;
+}
+
+.calculator-expr-row-empty:focus-within .calculator-expr-number {
+  opacity: 1;
+}
+
+.calculator-expr-number svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* "add slider: a b all" — offered whenever a row references a letter
+   that isn't x, y, or a known constant/function. */
+.calculator-expr-slider-suggest {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 2px 8px 30px;
+}
+
+.calculator-expr-slider-suggest-label {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-right: 2px;
+}
+
+.calculator-expr-suggest-btn {
+  border: none;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans, serif);
+  font-style: italic;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+
+.calculator-expr-suggest-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.calculator-expr-suggest-btn-all {
+  background: var(--brand-color);
+  color: #fff;
+  font-style: normal;
+}
+
+.calculator-expr-suggest-btn-all:hover {
+  background: var(--brand-color);
+  opacity: 0.9;
+}
+
+/* A contentEditable div standing in for a text <input> — it needs the
+   single-line/no-wrap/no-outline behavior an input gets for free. */
+.calculator-expr-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  padding: 6px 2px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  outline: none;
+  scrollbar-width: none;
+}
+
+.calculator-expr-input::-webkit-scrollbar {
+  display: none;
+}
+
+/* Live superscript, entered by pressing "^" mid-expression. */
+.calc-sup {
+  font-size: 0.7em;
+  vertical-align: super;
+  line-height: 1;
+  /* Without this, Chrome paints a yellow "editable region" highlight on
+     nested contentEditable islands the moment they're focused. */
+  outline: none;
+  background: transparent;
+}
+
+/* Live stacked fraction, entered by pressing "/" — the numerator/
+   denominator spans are their own tiny editable islands within the
+   larger contentEditable field. */
+.calc-frac {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: middle;
+  margin: 0 3px;
+  font-size: 0.85em;
+  line-height: 1.3;
+}
+
+.calc-frac-num,
+.calc-frac-den {
+  display: block;
+  min-width: 10px;
+  padding: 0 3px;
+  text-align: center;
+  outline: none;
+  background: transparent;
+}
+
+.calc-frac-num {
+  border-bottom: 1.3px solid currentColor;
+}
+
+/* Live radical, entered by typing "sqrt"/"cbrt"/"nthroot" in full — the √
+   glyph plus an editable argument with a bar drawn over it (border-top)
+   standing in for the vinculum, and an optional small index for cube/nth
+   roots sitting in the radical's usual top-left notch. */
+.calc-radical {
+  display: inline-flex;
+  align-items: flex-end;
+  vertical-align: middle;
+  margin: 0 1px;
+}
+
+.calc-radical-index {
+  font-size: 0.65em;
+  margin-bottom: 0.5em;
+  margin-right: -1px;
+  min-width: 7px;
+  text-align: center;
+  outline: none;
+  background: transparent;
+}
+
+.calc-radical-index-fixed {
+  color: var(--ink-soft);
+}
+
+.calc-radical-symbol {
+  font-size: 1.05em;
+  line-height: 1;
+  /* The "√" glyph's own ink sits well short of its line box on every
+     platform font tested — its top-right tip lands visibly below and
+     left of where calc-radical-arg's border-top bar starts, reading as a
+     gap/missing corner where the hook should meet the vinculum. Nudging
+     the glyph up and right closes that gap so the two read as one
+     continuous stroke instead of two disconnected pieces. */
+  position: relative;
+  top: -0.32em;
+  margin-right: -0.08em;
+}
+
+.calc-radical-arg {
+  border-top: 1.3px solid currentColor;
+  padding: 1px 3px 0;
+  min-width: 10px;
+  text-align: center;
+  outline: none;
+  background: transparent;
+}
+
+.calculator-expr-input:focus {
+  outline: none;
+  border-bottom-color: var(--brand-color);
+}
+
+.calculator-expr-input-error {
+  border-bottom-color: rgba(199, 68, 64, 0.5);
+}
+
+/* The evaluated result of a plain-arithmetic row (no free variable to
+   plot) — shown inline instead of drawing a meaningless flat line. */
+.calculator-expr-result {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.calculator-expr-delete {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.calculator-expr-row:hover .calculator-expr-delete {
+  opacity: 1;
+}
+
+.calculator-expr-delete:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.calculator-expr-slider {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 2px 8px 18px;
+}
+
+.calculator-expr-slider-bound {
+  width: 34px;
+  border: none;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  padding: 2px 4px;
+  font-size: 11px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.calculator-expr-slider-bound-error {
+  background: rgba(199, 68, 64, 0.12);
+  color: #c74440;
+  box-shadow: inset 0 0 0 1px rgba(199, 68, 64, 0.5);
+}
+
+.calculator-expr-slider-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.calculator-expr-slider-error {
+  padding: 0 2px 6px 18px;
+  font-size: 11px;
+  color: #c74440;
+}
+
+.calculator-expr-slider-input {
+  flex: 1;
+  appearance: none;
+  -webkit-appearance: none;
+  height: 14px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.calculator-expr-slider-input::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--brand-color) var(--fill, 0%),
+    rgba(0, 0, 0, 0.1) var(--fill, 0%)
+  );
+}
+
+.calculator-expr-slider-input::-moz-range-track {
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.calculator-expr-slider-input::-moz-range-progress {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--brand-color);
+}
+
+.calculator-expr-slider-input::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(60, 64, 90, 0.35);
+}
+
+.calculator-expr-slider-input::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(60, 64, 90, 0.35);
+}
+
+.calculator-expr-slider-value {
+  min-width: 34px;
+  text-align: right;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.calculator-graph {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.calculator-graph-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+
+.calculator-graph-canvas:active {
+  cursor: grabbing;
+}
+
+.calculator-graph-controls {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calculator-graph-control-btn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(60, 64, 90, 0.16);
+}
+
+.calculator-graph-control-btn:hover {
+  color: var(--brand-color);
+}
+
+.calculator-graph-control-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Floats directly on the graph's own top-right corner — replaces the
+   panel-wide toolbar's close button now that no bar runs across the top
+   of the graph at all. */
+.calculator-graph-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--ink);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(60, 64, 90, 0.16);
+}
+
+.calculator-graph-close:hover {
+  color: var(--brand-color);
+}
+
+/* A point's coordinate readout — shown on hover, or permanently once the
+   point's been clicked. Positioned via left/top set imperatively to the
+   point's current screen position (recomputed on every pan/zoom), with the
+   transform here doing the fixed part: centered above the point itself,
+   never intercepting pointer events so it can't block clicking the dot
+   underneath it or dragging the canvas through it. */
+.calculator-graph-point-label {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 10px));
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1.5px solid;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--ink);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 14px rgba(60, 64, 90, 0.16);
+  z-index: 5;
 }
 
 /* ---------------- Misc ---------------- */
@@ -451,18 +2288,16 @@ input {
 }
 
 @media (max-width: 640px) {
-  .top-bar {
+  .landing-page {
+    gap: 32px;
+    padding: 60px 16px;
+  }
+  .subject-page-header {
     flex-direction: column;
-    gap: 10px;
+    align-items: stretch;
   }
-  .search-bar {
-    width: min(100%, 320px);
-  }
-  .hint-pill {
-    font-size: 11px;
-    padding: 8px 14px;
-    max-width: 90vw;
-    white-space: normal;
-    text-align: center;
+  .subject-page-search {
+    margin-left: 0;
+    width: 100%;
   }
 }
