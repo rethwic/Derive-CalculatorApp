@@ -10,10 +10,10 @@
 // sentence-shaped queries (see `looksLikeNaturalQuery`); a plain keyword
 // search like "kinetic energy" never reaches it and behaves exactly as
 // before.
-import type { CalcVar, Formula } from '../types.js';
-import { formulas } from '../data/formulas.js';
-import { solveForUnknown } from './solve.js';
-import { unitForMeaning } from './units.js';
+import type { CalcVar, Formula } from '../types';
+import { formulas } from '../data/formulas';
+import { solveForUnknown } from './solve';
+import { unitForMeaning } from './units';
 
 export interface KnownValue {
   symbol: string;
@@ -88,10 +88,8 @@ function conceptScore(phrase: string, meaning: string): number {
 // agree on symbols almost everywhere (a handful of formulas, e.g.
 // gravitation's "m₁, m₂", combine two calc vars under one displayed
 // variable) — matched by symbol containment rather than assuming a 1:1
-// array correspondence. Exported for the AI search route, which needs the
-// same human-readable meanings to describe each formula's variables to the
-// model.
-export function meaningForCalcVar(formula: Formula, calcVar: CalcVar): string {
+// array correspondence.
+function meaningForCalcVar(formula: Formula, calcVar: CalcVar): string {
   const exact = formula.variables.find((v) => v.symbol === calcVar.symbol);
   if (exact) return exact.meaning;
   const containing = formula.variables.find((v) => v.symbol.includes(calcVar.symbol));
@@ -256,70 +254,6 @@ function findBestCandidate(targetPhrase: string | null, clauses: KnownClause[]):
   return best;
 }
 
-// Shared by both understanding paths: given a formula, which of its
-// calc-vars is the target, and whatever numeric values are explicitly
-// known (by calc-var key — the target itself excluded), either solves for
-// the target outright or falls back to a plain formula match. Explicit
-// values win over a variable's own default (g, R, ...); a default fills in
-// silently when nothing overrides it. This is exactly the tail end the
-// local pattern-matcher used to do inline — pulled out so the AI search
-// route (which already knows the formula and target from the model's own
-// answer, not from matching phrases) can produce the identical result
-// shape without duplicating the solve-and-format logic.
-export function buildResult(
-  formula: Formula,
-  targetKey: string,
-  explicitValues: Record<string, number>,
-): SmartQueryResult | null {
-  const calc = formula.calc;
-  if (!calc) return null;
-  const targetVar = calc.vars.find((v) => v.key === targetKey);
-  if (!targetVar) return null;
-  const targetMeaning = meaningForCalcVar(formula, targetVar);
-
-  const knownValues: Record<string, number> = {};
-  const knowns: KnownValue[] = [];
-  let allHaveValues = true;
-  let anyExplicit = false;
-  for (const v of calc.vars) {
-    if (v.key === targetKey) continue;
-    const explicit = explicitValues[v.key];
-    const value = explicit ?? v.defaultValue;
-    if (explicit !== undefined) anyExplicit = true;
-    if (value === undefined) {
-      allHaveValues = false;
-      continue;
-    }
-    const meaning = meaningForCalcVar(formula, v);
-    knownValues[v.key] = value;
-    knowns.push({ symbol: v.symbol, meaning, value, unit: unitForMeaning(meaning) });
-  }
-
-  if (allHaveValues && anyExplicit) {
-    const value = solveForUnknown(calc.residual, knownValues, targetKey);
-    if (value !== null) {
-      return {
-        kind: 'answer',
-        formula,
-        targetSymbol: targetVar.symbol,
-        targetMeaning,
-        targetUnit: unitForMeaning(targetMeaning),
-        value,
-        knowns,
-        prefill: knownValues,
-      };
-    }
-  }
-
-  return {
-    kind: 'formula-match',
-    formula,
-    targetSymbol: targetVar.symbol,
-    targetMeaning,
-    prefill: knownValues,
-  };
-}
-
 export function parseSmartQuery(rawQuery: string): SmartQueryResult | null {
   const query = rawQuery.trim();
   if (!looksLikeNaturalQuery(query)) return null;
@@ -331,11 +265,45 @@ export function parseSmartQuery(rawQuery: string): SmartQueryResult | null {
   const candidate = findBestCandidate(targetPhrase, clauses);
   if (!candidate) return null;
 
-  const { formula, target, matched } = candidate;
-  const explicitValues: Record<string, number> = {};
-  matched.forEach(({ clause }, key) => {
-    if (clause.value !== undefined) explicitValues[key] = clause.value;
-  });
+  const { formula, target, allVars, matched } = candidate;
+  const knownValues: Record<string, number> = {};
+  const knowns: KnownValue[] = [];
+  let allHaveValues = true;
+  let anyMatched = false;
+  for (const meta of allVars) {
+    if (meta.key === target.key) continue;
+    const found = matched.get(meta.key);
+    const value = found?.clause.value ?? meta.defaultValue;
+    if (found) anyMatched = true;
+    if (value === undefined) {
+      allHaveValues = false;
+      continue;
+    }
+    knownValues[meta.key] = value;
+    knowns.push({ symbol: meta.symbol, meaning: meta.meaning, value, unit: unitForMeaning(meta.meaning) });
+  }
 
-  return buildResult(formula, target.key, explicitValues);
+  if (allHaveValues && anyMatched) {
+    const value = solveForUnknown(formula.calc!.residual, knownValues, target.key);
+    if (value !== null) {
+      return {
+        kind: 'answer',
+        formula,
+        targetSymbol: target.symbol,
+        targetMeaning: target.meaning,
+        targetUnit: unitForMeaning(target.meaning),
+        value,
+        knowns,
+        prefill: knownValues,
+      };
+    }
+  }
+
+  return {
+    kind: 'formula-match',
+    formula,
+    targetSymbol: target.symbol,
+    targetMeaning: target.meaning,
+    prefill: knownValues,
+  };
 }

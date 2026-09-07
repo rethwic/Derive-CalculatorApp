@@ -1,4 +1,4 @@
-import type { Formula } from '../types.js';
+import type { Formula } from '../types';
 
 export const formulas: Formula[] = [
   // ---------- ALGEBRA & PRECALCULUS ----------

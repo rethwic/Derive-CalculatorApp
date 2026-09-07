@@ -482,16 +482,6 @@ a {
   opacity: 0.8;
 }
 
-/* Shown only while the Enter-triggered AI request is in flight — the local
-   pattern-matcher's own guess (if any) stays visible underneath the whole
-   time, so this reads as "double-checking with AI", not "search reset". */
-.search-ai-loading {
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--brand-color);
-}
-
 /* ---------------- Subject pills (landing) ---------------- */
 
 /* width: 100% (rather than shrink-to-fit + center, as it was with 3 cards)

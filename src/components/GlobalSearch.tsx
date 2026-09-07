@@ -2,8 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Katex } from './Katex';
 import { searchFormulas } from '../lib/search';
-import { parseSmartQuery, looksLikeNaturalQuery, type SmartQueryResult } from '../lib/smartQuery';
-import { askAI } from '../lib/aiSearch';
+import { parseSmartQuery, type SmartQueryResult } from '../lib/smartQuery';
 import { formulas } from '../data/formulas';
 import { categoryMap } from '../data/categories';
 import { useDetail } from '../context/DetailContext';
@@ -47,17 +46,7 @@ export function GlobalSearch() {
   const restRef = useRef<HTMLDivElement>(null);
   const { openDetail } = useDetail();
 
-  // The local pattern-matcher runs instantly on every keystroke, same as
-  // always. The AI only ever runs once, on Enter (see the input's
-  // onKeyDown below) — its result, once it lands, takes over from the
-  // local guess; a plain `null` (no confident match, or the request
-  // failed) just leaves the local guess standing rather than blanking it.
-  const [aiResult, setAiResult] = useState<SmartQueryResult | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const aiRequestIdRef = useRef(0);
-
-  const localSmart = useMemo<SmartQueryResult | null>(() => parseSmartQuery(query), [query]);
-  const smart = aiResult ?? localSmart;
+  const smart = useMemo<SmartQueryResult | null>(() => parseSmartQuery(query), [query]);
   const results = useMemo(
     () => searchFormulas(formulas, query)
       .filter((f) => f.id !== smart?.formula.id)
@@ -65,29 +54,6 @@ export function GlobalSearch() {
     [query, smart],
   );
   const showResults = expanded && query.trim().length > 0;
-
-  function updateQuery(next: string) {
-    setQuery(next);
-    aiRequestIdRef.current += 1;
-    setAiResult(null);
-    setAiLoading(false);
-  }
-
-  function askAIForCurrentQuery() {
-    if (!looksLikeNaturalQuery(query)) return;
-    const requestId = ++aiRequestIdRef.current;
-    setAiLoading(true);
-    askAI(query)
-      .then((result) => {
-        if (aiRequestIdRef.current !== requestId) return;
-        setAiResult(result);
-        setAiLoading(false);
-      })
-      .catch(() => {
-        if (aiRequestIdRef.current !== requestId) return;
-        setAiLoading(false);
-      });
-  }
 
   function openExpanded() {
     if (restRef.current) setOrigin(restRef.current.getBoundingClientRect());
@@ -177,10 +143,9 @@ export function GlobalSearch() {
                   autoFocus
                   type="text"
                   value={query}
-                  onChange={(e) => updateQuery(e.target.value)}
+                  onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Escape') closeExpanded();
-                    if (e.key === 'Enter') askAIForCurrentQuery();
                   }}
                   placeholder="Search formulas, symbols, topics…"
                   spellCheck={false}
@@ -191,7 +156,7 @@ export function GlobalSearch() {
                     type="button"
                     className="search-clear"
                     aria-label="Clear search"
-                    onClick={() => updateQuery('')}
+                    onClick={() => setQuery('')}
                   >
                     ×
                   </button>
@@ -217,11 +182,10 @@ export function GlobalSearch() {
             exit={{ opacity: 0, y: -8, scale: 0.98 }}
             transition={{ duration: 0.18 }}
           >
-            {!smart && results.length === 0 && !aiLoading ? (
+            {!smart && results.length === 0 ? (
               <div className="search-empty">No formulas found</div>
             ) : (
               <>
-                {aiLoading && <div className="search-ai-loading">Asking AI…</div>}
                 {smart && smart.kind === 'answer' && (
                   <button
                     type="button"
