@@ -12,8 +12,12 @@
 // misidentify a formula but can never produce a wrong number for a
 // correctly identified one.
 import { GoogleGenAI, Type } from '@google/genai';
-import { formulas } from '../src/data/formulas';
-import { meaningForCalcVar } from '../src/lib/smartQuery';
+// Vercel Functions run each file individually under Node's native ESM
+// loader here (not bundled into one file the way the Vite client build
+// is) — that loader requires the literal .js extension on relative
+// imports, unlike the bundler-style resolution the rest of this app uses.
+import { formulas } from '../src/data/formulas.js';
+import { meaningForCalcVar } from '../src/lib/smartQuery.js';
 
 const MODEL = 'gemini-2.5-flash';
 

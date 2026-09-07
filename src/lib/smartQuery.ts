@@ -10,10 +10,10 @@
 // sentence-shaped queries (see `looksLikeNaturalQuery`); a plain keyword
 // search like "kinetic energy" never reaches it and behaves exactly as
 // before.
-import type { CalcVar, Formula } from '../types';
-import { formulas } from '../data/formulas';
-import { solveForUnknown } from './solve';
-import { unitForMeaning } from './units';
+import type { CalcVar, Formula } from '../types.js';
+import { formulas } from '../data/formulas.js';
+import { solveForUnknown } from './solve.js';
+import { unitForMeaning } from './units.js';
 
 export interface KnownValue {
   symbol: string;

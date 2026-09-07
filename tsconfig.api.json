@@ -6,11 +6,15 @@
     "types": ["node"],
     "skipLibCheck": true,
 
-    /* Bundler mode — matches tsconfig.app.json; Vercel's own build (esbuild)
-       does its own resolution regardless, this is only for local `tsc -b`. */
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    /* nodenext, not bundler — Vercel Functions here run each file
+       individually under Node's own ESM loader at runtime (confirmed via
+       an ERR_MODULE_NOT_FOUND from a bare specifier in production), not a
+       single esbuild-bundled file, so this needs to type-check against the
+       same resolution rules that will actually execute it: relative
+       imports require an explicit .js extension even though the source
+       is .ts. */
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
