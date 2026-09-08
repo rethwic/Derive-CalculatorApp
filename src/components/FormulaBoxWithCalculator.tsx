@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { Katex } from './Katex';
 import { FormulaBox } from './FormulaBox';
 import { FormulaCalculator, useCalculatorState } from './FormulaCalculator';
-import { substituteLatex, symbolToLatex, formatSubstituted } from '../lib/latexSubstitute';
+import { substituteLatex, symbolToLatex, formatSubstituted, rearrangeForTarget } from '../lib/latexSubstitute';
 import type { FormulaCalc } from '../types';
 
 interface FormulaBoxWithCalculatorProps {
@@ -31,6 +31,15 @@ export function FormulaBoxWithCalculator({ latex, calc, initialValues, children 
   // solved one stays as its own symbol in the "plugged in" line, exactly
   // like it would if you'd worked it out by hand, with the actual value
   // held back for a separate final line right below.
+  //
+  // When the target isn't already alone on one side of the formula (e.g.
+  // solving Newton's second law for m rather than F), rearrangeForTarget
+  // first moves it there algebraically — "to the other side of the
+  // equation" — so the substituted line shown is the same one you'd get
+  // solving it by hand, not the original equation with a variable still
+  // tangled into both sides. If it can't confidently rearrange (or the
+  // target is already isolated), this falls back to substituting straight
+  // into the original latex, which is correct for the already-isolated case.
   const work = useMemo(() => {
     const solved = state.solved;
     if (!solved) return null;
@@ -40,21 +49,27 @@ export function FormulaBoxWithCalculator({ latex, calc, initialValues, children 
       .filter((v) => v.key !== solved.key)
       .map((v) => ({ symbol: v.symbol, value: Number(state.values[v.key]) }))
       .filter((e) => Number.isFinite(e.value));
+
+    const allSymbols = calc.vars.map((v) => v.symbol);
+    const rearranged = rearrangeForTarget(latex, target.symbol, allSymbols);
+    const equationToSubstitute = rearranged ?? latex;
+
     return {
-      substituted: substituteLatex(latex, entries),
+      substituted: substituteLatex(equationToSubstitute, entries),
       answer: `${symbolToLatex(target.symbol)} = ${formatSubstituted(solved.value)}`,
     };
   }, [latex, calc.vars, state.values, state.solved]);
 
   return (
     <>
-      <FormulaBox latex={latex} />
-      {work && (
-        <div className="detail-formula-work">
-          <Katex math={work.substituted} block />
-          <Katex math={work.answer} block />
-        </div>
-      )}
+      <FormulaBox latex={latex}>
+        {work && (
+          <div className="detail-formula-work">
+            <Katex math={work.substituted} block />
+            <Katex math={work.answer} block />
+          </div>
+        )}
+      </FormulaBox>
       {children}
       <FormulaCalculator calc={calc} state={state} />
     </>

@@ -1082,6 +1082,7 @@ a {
   border: 1px solid var(--glass-border);
   box-shadow: inset 0 1px 0 var(--glass-highlight);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   font-size: 22px;
@@ -1102,22 +1103,24 @@ a {
 }
 
 /* The worked substitution shown once solving a formula leaves exactly one
-   blank — deliberately smaller and quieter than .detail-formula above it,
-   since it's supporting work rather than the headline equation. Its own
-   horizontal scroll (rather than shrink-to-fit like the main box) is fine
-   here: unlike the primary formula, this is secondary detail nobody needs
-   to read at a glance, and a substituted expression can run considerably
-   wider once every symbol becomes a multi-digit parenthesized number. */
+   blank — rendered inside the same card as .detail-formula (as a nested
+   flex child, not a sibling), separated by a divider rather than its own
+   background/border so it reads as "part of this card" instead of a
+   second stacked box. Deliberately smaller and quieter than the formula
+   above it, since it's supporting work rather than the headline equation.
+   Its own horizontal scroll (rather than shrink-to-fit like the main box)
+   is fine here: unlike the primary formula, this is secondary detail
+   nobody needs to read at a glance, and a substituted expression can run
+   considerably wider once every symbol becomes a multi-digit
+   parenthesized number. */
 .detail-formula-work {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: -8px;
-  margin-bottom: 20px;
-  padding: 14px 20px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.4);
-  border: 1px solid var(--glass-border);
+  align-self: stretch;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--glass-border);
   color: var(--ink-soft);
   font-size: 15px;
   overflow-x: auto;
