@@ -376,9 +376,14 @@ export function WorkspacePage() {
 
         {cards.length === 0 && (
           <div className="workspace-empty">
-            <p>Move your mouse to the left edge, then search to pin a formula here.</p>
-            <p className="workspace-empty-hint">
+            <p className="workspace-hint-desktop">Move your mouse to the left edge, then search to pin a formula here.</p>
+            <p className="workspace-empty-hint workspace-hint-desktop">
               Drag cards by their title bar to arrange them. Scroll to pan, Ctrl/⌘ + scroll to zoom.
+            </p>
+            <p className="workspace-hint-touch">Tap the search button below to pin a formula here.</p>
+            <p className="workspace-empty-hint workspace-hint-touch">
+              Drag cards by their title bar to arrange them, or drag empty space to pan. Press and hold the
+              resize button to zoom.
             </p>
           </div>
         )}

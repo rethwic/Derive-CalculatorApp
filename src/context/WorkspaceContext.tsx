@@ -91,12 +91,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       const vh = window.innerHeight;
       const cx = (vw / 2 - s.view.x) / s.view.scale;
       const cy = (vh / 2 - s.view.y) / s.view.scale;
-      const jitter = () => (Math.random() - 0.5) * 90;
+      // Cards are 340px wide and anchor at their top-left, so subtract half
+      // of that to land the card's middle (not its corner) on the view's
+      // center — otherwise a phone-width view pushes it off the right edge.
+      const jitterRange = vw <= 640 ? 24 : 90;
+      const jitter = () => (Math.random() - 0.5) * jitterRange;
       const uid = `${formula.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       const z = nextZRef.current++;
       return {
         ...s,
-        cards: [...s.cards, { uid, formulaId: formula.id, x: cx + jitter(), y: cy + jitter(), z }],
+        cards: [...s.cards, { uid, formulaId: formula.id, x: cx - 170 + jitter(), y: cy - 130 + jitter(), z }],
       };
     });
   }

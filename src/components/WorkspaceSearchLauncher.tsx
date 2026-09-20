@@ -20,8 +20,8 @@ const RESULTS_GAP = 12;
 function expandedTarget() {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const width = Math.min(600, vw - 48);
-  return { left: (vw - width) / 2, top: vh * 0.14, width };
+  const width = Math.min(600, vw - (vw <= 640 ? 32 : 48));
+  return { left: (vw - width) / 2, top: vw <= 640 ? 64 : vh * 0.14, width };
 }
 
 // Same origin-rect-to-target-rect morph GlobalSearch uses, just starting
@@ -33,7 +33,18 @@ export function WorkspaceSearchLauncher({ onSelect }: { onSelect: (formula: Form
   const [origin, setOrigin] = useState<DOMRect | null>(null);
   const restRef = useRef<HTMLButtonElement>(null);
 
-  const results = useMemo(() => searchFormulas(formulas, query).slice(0, 8), [query]);
+  // A workspace card is a whole formula (shape picker and all), so a hit on
+  // one shape ("sphere volume") collapses to its parent card.
+  const results = useMemo(() => {
+    const seen = new Set<string>();
+    const unique: Formula[] = [];
+    for (const hit of searchFormulas(formulas, query)) {
+      if (seen.has(hit.formula.id)) continue;
+      seen.add(hit.formula.id);
+      unique.push(hit.formula);
+    }
+    return unique.slice(0, 8);
+  }, [query]);
   const showResults = expanded && query.trim().length > 0;
 
   function openExpanded() {

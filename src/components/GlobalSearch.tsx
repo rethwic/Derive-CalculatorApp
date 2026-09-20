@@ -29,8 +29,11 @@ const RESULTS_GAP = 12;
 function expandedTarget() {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const width = Math.min(600, vw - 48);
-  return { left: (vw - width) / 2, top: vh * 0.32, width };
+  const isPhone = vw <= 640;
+  const width = Math.min(600, vw - (isPhone ? 32 : 48));
+  // On a phone the keyboard covers the lower half of the screen, so the bar
+  // (and the results hanging off it) sits near the top instead.
+  return { left: (vw - width) / 2, top: isPhone ? 64 : vh * 0.32, width };
 }
 
 export function GlobalSearch() {
@@ -46,11 +49,11 @@ export function GlobalSearch() {
   const restRef = useRef<HTMLDivElement>(null);
   const { openDetail } = useDetail();
 
-  const smart = useMemo<SmartQueryResult | null>(() => parseSmartQuery(query), [query]);
+  const smart = useMemo<SmartQueryResult[]>(() => parseSmartQuery(query), [query]);
   const results = useMemo(
     () => searchFormulas(formulas, query)
-      .filter((f) => f.id !== smart?.formula.id)
-      .slice(0, 8),
+      .filter((h) => !smart.some((s) => s.formula.id === h.formula.id && s.variantIndex === h.variantIndex))
+      .slice(0, 10),
     [query, smart],
   );
   const showResults = expanded && query.trim().length > 0;
@@ -182,67 +185,70 @@ export function GlobalSearch() {
             exit={{ opacity: 0, y: -8, scale: 0.98 }}
             transition={{ duration: 0.18 }}
           >
-            {!smart && results.length === 0 ? (
+            {smart.length === 0 && results.length === 0 ? (
               <div className="search-empty">No formulas found</div>
             ) : (
               <>
-                {smart && smart.kind === 'answer' && (
-                  <button
-                    type="button"
-                    className="search-smart-answer"
-                    onClick={(e) => {
-                      openDetail(smart.formula, e.currentTarget.getBoundingClientRect(), smart.prefill);
-                      closeExpanded();
-                    }}
-                  >
-                    <div className="search-smart-answer-value">
-                      {smart.targetSymbol} ≈ {formatValue(smart.value)}
-                      {smart.targetUnit ? ` ${smart.targetUnit}` : ''}
-                    </div>
-                    <div className="search-smart-answer-source">
-                      <Katex math={smart.formula.latex} />
-                      <span>{smart.formula.title}</span>
-                    </div>
-                    {smart.knowns.length > 0 && (
-                      <div className="search-smart-answer-knowns">
-                        Using{' '}
-                        {smart.knowns.map((k, i) => (
-                          <span key={k.symbol}>
-                            {i > 0 ? ', ' : ''}
-                            {k.symbol} = {formatValue(k.value)}
-                            {k.unit ? ` ${k.unit}` : ''}
-                          </span>
-                        ))}
+                {smart.map((s) =>
+                  s.kind === 'answer' ? (
+                    <button
+                      key={`answer-${s.formula.id}-${s.variantIndex ?? 'base'}`}
+                      type="button"
+                      className="search-smart-answer"
+                      onClick={(e) => {
+                        openDetail(s.formula, e.currentTarget.getBoundingClientRect(), s.prefill, s.variantIndex);
+                        closeExpanded();
+                      }}
+                    >
+                      <div className="search-smart-answer-value">
+                        {s.targetSymbol} ≈ {formatValue(s.value)}
+                        {s.targetUnit ? ` ${s.targetUnit}` : ''}
                       </div>
-                    )}
-                  </button>
-                )}
-                {smart && smart.kind === 'formula-match' && (
-                  <button
-                    type="button"
-                    className="search-result search-result-smart"
-                    onClick={(e) => {
-                      openDetail(smart.formula, e.currentTarget.getBoundingClientRect(), smart.prefill);
-                      closeExpanded();
-                    }}
-                  >
-                    <span className="search-result-formula">
-                      <Katex math={smart.formula.latex} />
-                    </span>
-                    <span className="search-result-meta">
-                      <span className="search-result-title">{smart.formula.title}</span>
-                      {smart.targetMeaning && (
-                        <span className="search-result-badge">Solve for {smart.targetMeaning.toLowerCase()}</span>
+                      <div className="search-smart-answer-source">
+                        <Katex math={s.latex} />
+                        <span>{s.title}</span>
+                      </div>
+                      {s.knowns.length > 0 && (
+                        <div className="search-smart-answer-knowns">
+                          Using{' '}
+                          {s.knowns.map((k, i) => (
+                            <span key={k.symbol}>
+                              {i > 0 ? ', ' : ''}
+                              {k.symbol} = {formatValue(k.value)}
+                              {k.unit ? ` ${k.unit}` : ''}
+                            </span>
+                          ))}
+                        </div>
                       )}
-                    </span>
-                  </button>
+                    </button>
+                  ) : (
+                    <button
+                      key={`match-${s.formula.id}-${s.variantIndex ?? 'base'}`}
+                      type="button"
+                      className="search-result search-result-smart"
+                      onClick={(e) => {
+                        openDetail(s.formula, e.currentTarget.getBoundingClientRect(), s.prefill, s.variantIndex);
+                        closeExpanded();
+                      }}
+                    >
+                      <span className="search-result-formula">
+                        <Katex math={s.latex} />
+                      </span>
+                      <span className="search-result-meta">
+                        <span className="search-result-title">{s.title}</span>
+                        {s.targetMeaning && (
+                          <span className="search-result-badge">Solve for {s.targetMeaning.toLowerCase()}</span>
+                        )}
+                      </span>
+                    </button>
+                  ),
                 )}
                 <AnimatePresence initial={false}>
-                  {results.map((f) => {
-                    const cat = categoryMap[f.category];
+                  {results.map((h) => {
+                    const cat = categoryMap[h.formula.category];
                     return (
                       <motion.button
-                        key={f.id}
+                        key={`${h.formula.id}-${h.variantIndex ?? 'base'}`}
                         layout
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -251,15 +257,15 @@ export function GlobalSearch() {
                         type="button"
                         className="search-result"
                         onClick={(e) => {
-                          openDetail(f, e.currentTarget.getBoundingClientRect());
+                          openDetail(h.formula, e.currentTarget.getBoundingClientRect(), undefined, h.variantIndex);
                           closeExpanded();
                         }}
                       >
                         <span className="search-result-formula">
-                          <Katex math={f.latex} />
+                          <Katex math={h.latex} />
                         </span>
                         <span className="search-result-meta">
-                          <span className="search-result-title">{f.title}</span>
+                          <span className="search-result-title">{h.title}</span>
                           <span className="search-result-category">{cat.name}</span>
                         </span>
                       </motion.button>

@@ -10,10 +10,20 @@
 // sentence-shaped queries (see `looksLikeNaturalQuery`); a plain keyword
 // search like "kinetic energy" never reaches it and behaves exactly as
 // before.
-import type { CalcVar, Formula } from '../types';
+import type { CalcVar, Formula, FormulaCalc, Variable } from '../types';
 import { formulas } from '../data/formulas';
 import { solveForUnknown } from './solve';
-import { unitForMeaning } from './units';
+import {
+  dimForMeaning,
+  fromSI,
+  labelForDim,
+  parseUnit,
+  sameDim,
+  toSI,
+  unitForMeaning,
+  type Dim,
+  type UnitSystem,
+} from './units';
 
 export interface KnownValue {
   symbol: string;
@@ -25,6 +35,11 @@ export interface KnownValue {
 export interface SmartAnswer {
   kind: 'answer';
   formula: Formula;
+  // Set when the answer comes from one shape of a multi-shape card (the
+  // Sphere entry of "Volume Formulas"); title/latex describe that shape.
+  variantIndex?: number;
+  title: string;
+  latex: string;
   targetSymbol: string;
   targetMeaning: string;
   targetUnit: string | null;
@@ -39,6 +54,9 @@ export interface SmartAnswer {
 export interface SmartFormulaMatch {
   kind: 'formula-match';
   formula: Formula;
+  variantIndex?: number;
+  title: string;
+  latex: string;
   targetSymbol: string | null;
   targetMeaning: string | null;
   // calc-var key -> value, for whatever numbers the query did include, so
@@ -84,15 +102,35 @@ function conceptScore(phrase: string, meaning: string): number {
   return 0;
 }
 
-// calc.vars and formula.variables are two separate lists that happen to
-// agree on symbols almost everywhere (a handful of formulas, e.g.
+// A variable typed by its letter ("r = 6", "m1 = 2"). Exact-case only:
+// "V" (volume/voltage) and "v" (velocity) are different quantities, and a
+// case-insensitive match would let "r = 6" claim the gas constant "R".
+const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉';
+
+function normalizeSymbol(s: string): string {
+  return s
+    .replace(/[₀-₉]/g, (c) => String(SUBSCRIPTS.indexOf(c)))
+    .replace(/[_{}\s]/g, '');
+}
+
+function symbolScore(phrase: string, symbol: string): number {
+  const p = normalizeSymbol(phrase);
+  return p !== '' && p === normalizeSymbol(symbol) ? 90 : 0;
+}
+
+function varScore(phrase: string, meta: { meaning: string; symbol: string }): number {
+  return Math.max(conceptScore(phrase, meta.meaning), symbolScore(phrase, meta.symbol));
+}
+
+// calc.vars and the displayed variables list are two separate lists that
+// happen to agree on symbols almost everywhere (a handful of formulas, e.g.
 // gravitation's "m₁, m₂", combine two calc vars under one displayed
 // variable) — matched by symbol containment rather than assuming a 1:1
 // array correspondence.
-function meaningForCalcVar(formula: Formula, calcVar: CalcVar): string {
-  const exact = formula.variables.find((v) => v.symbol === calcVar.symbol);
+function meaningForCalcVar(variables: Variable[], calcVar: CalcVar): string {
+  const exact = variables.find((v) => v.symbol === calcVar.symbol);
   if (exact) return exact.meaning;
-  const containing = formula.variables.find((v) => v.symbol.includes(calcVar.symbol));
+  const containing = variables.find((v) => v.symbol.includes(calcVar.symbol));
   return containing?.meaning ?? calcVar.symbol;
 }
 
@@ -120,7 +158,7 @@ function normalizeIdioms(query: string): string {
 
 // Many ways to ask for the same thing — this list is deliberately generous
 // rather than a fixed phrasing, since the real gate against nonsense is the
-// coverage check in findBestCandidate below (every other variable in the
+// coverage check in findCandidates below (every other variable in the
 // matched formula still has to be accounted for), not this pattern list.
 const TARGET_PATTERNS = [
   /\bformula for\s+(?:the\s+)?(.+)/i,
@@ -149,37 +187,62 @@ const TARGET_PATTERNS = [
   /\bgive me\s+(?:the\s+)?(.+)/i,
   /\bget\s+(?:the\s+)?(.+)/i,
   /\btell me\s+(?:the\s+)?(.+)/i,
+  // No lead-in at all — just "<quantity> when <knowns>" ("volume when r = 6").
+  // Only a plain-words prefix counts; anything with a digit or "=" before the
+  // connector is a known value, not a target.
+  /^\s*(?:the\s+)?([a-zA-Z][a-zA-Z\s]*?\s+(?:when|if|given|knowing|where|for|with)\b.*)$/i,
 ];
 
 // Where a target phrase captured above should stop — right before whatever
 // starts describing the *known* values, regardless of which connector word
 // (if any) introduces them.
-const TARGET_CUT_RE = /[,;]|\b(when|if|given|knowing|since|because|and|know|with)\b|\d/i;
+// A digit right after a letter or "_" ("m1", "q_2") is a subscript, and one
+// after "^" is an exponent ("m/s^2") — neither is a value.
+const NUM = String.raw`(?<![a-zA-Z_^])-?\d+(?:\.\d+)?`;
+const NUMBER_RE_SRC = NUM;
+const UNIT_WORD = String.raw`[a-zA-Zµμ°%Ω][a-zA-Zµμ°%/²³Ω·^\d*-]*`;
+// A unit is one word ("cm", "feet") or a short phrase ("square meters",
+// "meters per second", "meters squared").
+const UNIT_TOKEN = String.raw`(?:(?:square|sq|cubic)\s+)?${UNIT_WORD}(?:\s+per\s+${UNIT_WORD})?(?:\s+(?:squared|cubed))?`;
+const TARGET_CUT_RE = /[,;]|\b(when|if|given|knowing|since|because|and|know|with)\b|(?<![a-zA-Z_^])\d/i;
 // The connector between a quantity's name and its value is optional — a
 // bare space ("mass 5 kg") works exactly like "mass = 5 kg" or "mass is
 // 5 kg". Matched with backtracking so a value clause containing an
 // incidental "of"/"is" elsewhere (e.g. "speed of light") still resolves to
 // the rightmost number, not the first stray keyword.
-const VALUE_CLAUSE_RE =
-  /^(.+?)(?:=|:|\bis\b|\bwas\b|\bequals\b|\bequal to\b|\bof\b)?\s*(-?\d+(?:\.\d+)?)\s*([a-zA-Zµμ°%/²Ω·]*)\s*$/i;
+const VALUE_CLAUSE_RE = new RegExp(
+  String.raw`^(.+?)(?:=|:|\bis\b|\bwas\b|\bequals\b|\bequal to\b|\bof\b)?\s*(${NUM})\s*(${UNIT_TOKEN})?\s*$`,
+  'i',
+);
 // The number can just as easily come first ("5 kg mass", "12 V of
 // voltage") — VALUE_CLAUSE_RE anchors the number+unit at the very end of
 // the clause, so this handles the mirror image instead of trying to cram
 // both directions into one pattern.
-const VALUE_CLAUSE_REVERSED_RE = /^\s*(-?\d+(?:\.\d+)?)\s*([a-zA-Zµμ°%/²Ω·]*)\s+(?:of\s+)?(.+?)\s*$/i;
+const VALUE_CLAUSE_REVERSED_RE = new RegExp(
+  String.raw`^\s*(${NUM})\s*(${UNIT_TOKEN})?\s+(?:of\s+)?(.+?)\s*$`,
+  'i',
+);
+
+// A unit only counts if it actually parses ("kg", "cm", "m/s^2"); anything
+// else ("fast") was never a unit and is ignored, as it always was.
+function validUnit(unit: string | undefined): string | undefined {
+  return unit && parseUnit(unit) ? unit : undefined;
+}
 
 function matchValueClause(text: string): { phrase: string; value: number; unit?: string } | null {
   const forward = text.match(VALUE_CLAUSE_RE);
   if (forward) {
     const value = Number(forward[2]);
     const phrase = forward[1].trim();
-    if (Number.isFinite(value) && phrase) return { phrase, value, unit: forward[3] || undefined };
+    if (Number.isFinite(value) && phrase) return { phrase, value, unit: validUnit(forward[3]) };
   }
   const reversed = text.match(VALUE_CLAUSE_REVERSED_RE);
   if (reversed) {
     const value = Number(reversed[1]);
-    const phrase = reversed[3].trim();
-    if (Number.isFinite(value) && phrase) return { phrase, value, unit: reversed[2] || undefined };
+    const unit = validUnit(reversed[2]);
+    // "6 radius": the word after the number wasn't a unit, it was the name.
+    const phrase = (unit || !reversed[2] ? reversed[3] : `${reversed[2]} ${reversed[3]}`).trim();
+    if (Number.isFinite(value) && phrase) return { phrase, value, unit };
   }
   return null;
 }
@@ -224,19 +287,36 @@ function extractTargetPhrase(query: string): TargetMatch | null {
 // whatever text sits between the previous number and this one as that
 // quantity's name.
 function splitByEmbeddedNumbers(chunk: string): KnownClause[] {
-  const NUMBER_RE = /-?\d+(?:\.\d+)?/g;
   const positions: { start: number; end: number }[] = [];
+  const re = new RegExp(NUMBER_RE_SRC, 'g');
   let m: RegExpExecArray | null;
-  while ((m = NUMBER_RE.exec(chunk))) positions.push({ start: m.index, end: m.index + m[0].length });
+  while ((m = re.exec(chunk))) positions.push({ start: m.index, end: m.index + m[0].length });
   if (positions.length < 2) return [];
 
   const clauses: KnownClause[] = [];
-  positions.forEach((pos, i) => {
-    const prevEnd = i === 0 ? 0 : positions[i - 1].end;
-    const segment = chunk.slice(prevEnd, pos.end);
-    const match = matchValueClause(segment);
-    const phrase = match?.phrase.replace(/^\s*(and|,|;)\s*/i, '').trim();
-    if (match && phrase) clauses.push({ phrase, value: match.value, unit: match.unit });
+  let cursor = 0;
+  positions.forEach((pos) => {
+    const phrase = chunk
+      .slice(cursor, pos.start)
+      .replace(/(?:=|:|\bis\b|\bwas\b|\bequals?\b|\bequal to\b|\bof\b)\s*$/i, '')
+      .replace(/^\s*(and|,|;)\s*/i, '')
+      .trim();
+    // A unit sits right after its number ("6 cm", "3m/s") — unless what
+    // follows is itself a variable being defined ("6 m = 5"), in which case
+    // it's the next clause's name, not this one's unit.
+    const after = chunk.slice(pos.end);
+    let unit: string | undefined;
+    let end = pos.end;
+    for (const src of [UNIT_TOKEN, UNIT_WORD]) {
+      const unitMatch = after.match(new RegExp(String.raw`^\s*(${src})`));
+      if (unitMatch && !/^\s*[=:]/.test(after.slice(unitMatch[0].length)) && validUnit(unitMatch[1])) {
+        unit = unitMatch[1];
+        end = pos.end + unitMatch[0].length;
+        break;
+      }
+    }
+    cursor = end;
+    if (phrase) clauses.push({ phrase, value: Number(chunk.slice(pos.start, pos.end)), unit });
   });
   return clauses;
 }
@@ -248,7 +328,7 @@ function parseKnownClauses(knownsText: string): KnownClause[] {
     .map((raw) => raw.trim())
     .filter(Boolean)
     .flatMap((clause) => {
-      const numberCount = (clause.match(/-?\d+(?:\.\d+)?/g) ?? []).length;
+      const numberCount = (clause.match(new RegExp(NUMBER_RE_SRC, 'g')) ?? []).length;
       // Two-plus numbers means this "clause" is actually several quantities
       // run together with no and/,/; between them ("mass 5kg velocity
       // 3m/s") — split those apart first. Checked before the single-value
@@ -265,7 +345,7 @@ function parseKnownClauses(knownsText: string): KnownClause[] {
     });
 }
 
-// The real filter against nonsense is findBestCandidate's coverage check
+// The real filter against nonsense is findCandidates's coverage check
 // (every other variable in whatever formula it tries still has to be
 // accounted for) — this gate only needs to rule out single bare keywords
 // ("mass") so a plain substring search isn't slowed down for nothing.
@@ -276,16 +356,62 @@ export function looksLikeNaturalQuery(query: string): boolean {
   return s.split(/\s+/).length >= 2;
 }
 
+
+
 interface VarMeta {
   key: string;
   symbol: string;
   meaning: string;
+  dim: Dim | null;
   // A handful of constants (g, the gas constant, G, ...) already carry a
   // standard value in the formula data — FormulaCalculator pre-fills them
   // the same way, so a sentence that never mentions "gravity" at all
   // shouldn't be treated as missing information any more than leaving that
   // field untouched in the calculator itself would be.
   defaultValue?: number;
+}
+
+// One solvable equation: a formula's own calc, or one shape of a
+// multi-shape card ("Area Formulas" -> Circle). Each is matched on its own,
+// so "r = 6" can surface the circle's area *and* the sphere's volume.
+interface Card {
+  formula: Formula;
+  variantIndex?: number;
+  title: string;
+  latex: string;
+  calc: FormulaCalc;
+  variables: Variable[];
+}
+
+let cachedCards: Card[] | null = null;
+
+function getCards(): Card[] {
+  if (cachedCards) return cachedCards;
+  const cards: Card[] = [];
+  for (const formula of formulas) {
+    if (formula.calc) {
+      cards.push({
+        formula,
+        title: formula.title,
+        latex: formula.latex,
+        calc: formula.calc,
+        variables: formula.variables,
+      });
+    }
+    formula.variants?.forEach((variant, variantIndex) => {
+      if (!variant.calc) return;
+      cards.push({
+        formula,
+        variantIndex,
+        title: `${formula.title} — ${variant.label}`,
+        latex: variant.latex,
+        calc: variant.calc,
+        variables: variant.variables,
+      });
+    });
+  }
+  cachedCards = cards;
+  return cards;
 }
 
 function greedyMatch(vars: VarMeta[], clauses: KnownClause[]): Map<string, { meta: VarMeta; clause: KnownClause }> {
@@ -296,7 +422,11 @@ function greedyMatch(vars: VarMeta[], clauses: KnownClause[]): Map<string, { met
     let bestScore = 0;
     clauses.forEach((clause, i) => {
       if (claimed.has(i)) return;
-      const score = conceptScore(clause.phrase, meta.meaning);
+      const score = varScore(clause.phrase, meta);
+      // A constant (c, g, R, ...) only takes a number when the sentence
+      // names it outright — not because "velocity" happens to sit inside
+      // "speed of light".
+      if (meta.defaultValue !== undefined && score < 90) return;
       if (score > bestScore) {
         bestScore = score;
         bestIdx = i;
@@ -311,36 +441,35 @@ function greedyMatch(vars: VarMeta[], clauses: KnownClause[]): Map<string, { met
 }
 
 interface Candidate {
-  formula: Formula;
+  card: Card;
   target: VarMeta;
   allVars: VarMeta[];
   matched: Map<string, { meta: VarMeta; clause: KnownClause }>;
   score: number;
+  // How well the asked-for quantity matched this equation's own variable
+  // (0 when the target was inferred by elimination).
+  targetScore: number;
 }
 
-function findBestCandidate(targetPhrase: string | null, clauses: KnownClause[]): Candidate | null {
-  let best: Candidate | null = null;
+// Every equation the sentence can be applied to, best first — not just the
+// single best one, so a lone "r = 6" reaches the circle's circumference,
+// area and the sphere's volume alike.
+function findCandidates(targetPhrase: string | null, clauses: KnownClause[]): Candidate[] {
+  const found: Candidate[] = [];
 
-  for (const formula of formulas) {
-    // Variant-only formulas (e.g. "Area Formulas") bundle several unrelated
-    // shapes under one card with no single top-level variable set to match
-    // a sentence against — out of scope here, the base `calc` case covers
-    // every formula meant to be solved as one equation.
-    if (!formula.calc) continue;
-    const allVars: VarMeta[] = formula.calc.vars.map((v) => ({
-      key: v.key,
-      symbol: v.symbol,
-      meaning: meaningForCalcVar(formula, v),
-      defaultValue: v.defaultValue,
-    }));
+  for (const card of getCards()) {
+    const allVars: VarMeta[] = card.calc.vars.map((v) => {
+      const meaning = meaningForCalcVar(card.variables, v);
+      return { key: v.key, symbol: v.symbol, meaning, dim: dimForMeaning(meaning), defaultValue: v.defaultValue };
+    });
 
     let target: VarMeta | null = null;
+    let targetScore = 0;
     if (targetPhrase) {
-      let bestScore = 0;
       for (const meta of allVars) {
-        const score = conceptScore(targetPhrase, meta.meaning);
-        if (score > bestScore) {
-          bestScore = score;
+        const score = varScore(targetPhrase, meta);
+        if (score > targetScore) {
+          targetScore = score;
           target = meta;
         }
       }
@@ -364,24 +493,128 @@ function findBestCandidate(targetPhrase: string | null, clauses: KnownClause[]):
     const covered = required.every((v) => matched.has(v.key) || v.defaultValue !== undefined);
     if (!covered) continue;
 
-    const score = matched.size * 10 + (targetPhrase ? 5 : 0);
-    if (!best || score > best.score) {
-      best = { formula, target, allVars, matched, score };
+    found.push({ card, target, allVars, matched, score: matched.size * 10 + (targetPhrase ? 5 : 0), targetScore });
+  }
+
+  // When the sentence names what it wants, only the equations whose variable
+  // is the best match for that name count — "velocity" shouldn't also pull in
+  // E = mc² just because "speed of light" contains the word.
+  const bestTarget = Math.max(0, ...found.map((c) => c.targetScore));
+  return found.filter((c) => c.targetScore === bestTarget).sort((a, b) => b.score - a.score);
+}
+
+const MAX_RESULTS = 6;
+
+function buildResult(candidate: Candidate): SmartQueryResult | null {
+  const { card, target, allVars, matched } = candidate;
+
+  // Units the sentence spelled out ("6 cm", "3 km/h") define the system the
+  // answer comes back in — first one named per dimension wins. Anything the
+  // sentence left unit-less is read in that same system; nothing is pulled
+  // over to SI unless no unit was given at all.
+  const system: UnitSystem = {};
+  for (const meta of allVars) {
+    const unit = matched.get(meta.key)?.clause.unit;
+    const parsed = unit ? parseUnit(unit) : null;
+    if (!parsed) continue;
+    for (const [axis, choice] of Object.entries(parsed.axes)) {
+      if (!system[Number(axis)]) system[Number(axis)] = choice;
     }
   }
 
-  return best;
+  const siValues: Record<string, number> = {};
+  const prefill: Record<string, number> = {};
+  const knowns: KnownValue[] = [];
+  let allHaveValues = true;
+  let anyMatched = false;
+
+  for (const meta of allVars) {
+    if (meta.key === target.key) continue;
+    const found = matched.get(meta.key);
+    if (found) anyMatched = true;
+    const typed = found?.clause.value;
+    const value = typed ?? meta.defaultValue;
+    if (value === undefined) {
+      allHaveValues = false;
+      continue;
+    }
+
+    let si = value;
+    let inSystem = value;
+    // What the "Using ..." line shows: exactly what was typed when it came
+    // with a unit, otherwise the value in the answer's unit system.
+    let shown = value;
+    let unitLabel: string | null;
+    const siLabel = unitForMeaning(meta.meaning);
+    const parsed = typed !== undefined && found?.clause.unit ? parseUnit(found.clause.unit) : null;
+
+    if (parsed) {
+      // A unit of the wrong kind ("radius = 6 s") means this equation isn't
+      // what the sentence is about.
+      if (meta.dim && !sameDim(parsed.dim, meta.dim)) return null;
+      si = value * parsed.factor;
+      inSystem = fromSI(si, parsed.dim, system);
+      unitLabel = found!.clause.unit!;
+    } else if (meta.dim) {
+      if (typed !== undefined) {
+        si = toSI(value, meta.dim, system);
+      } else {
+        si = value;
+        inSystem = fromSI(value, meta.dim, system);
+        shown = inSystem;
+      }
+      unitLabel = labelForDim(meta.dim, system, siLabel);
+    } else {
+      unitLabel = siLabel;
+    }
+
+    siValues[meta.key] = si;
+    prefill[meta.key] = inSystem;
+    knowns.push({ symbol: meta.symbol, meaning: meta.meaning, value: shown, unit: unitLabel });
+  }
+
+  const base = {
+    formula: card.formula,
+    variantIndex: card.variantIndex,
+    title: card.title,
+    latex: card.latex,
+  };
+
+  if (allHaveValues && anyMatched) {
+    const si = solveForUnknown(card.calc.residual, siValues, target.key);
+    if (si !== null) {
+      const siLabel = unitForMeaning(target.meaning);
+      return {
+        kind: 'answer',
+        ...base,
+        targetSymbol: target.symbol,
+        targetMeaning: target.meaning,
+        targetUnit: target.dim ? labelForDim(target.dim, system, siLabel) : siLabel,
+        value: target.dim ? fromSI(si, target.dim, system) : si,
+        knowns,
+        prefill,
+      };
+    }
+  }
+
+  return {
+    kind: 'formula-match',
+    ...base,
+    targetSymbol: target.symbol,
+    targetMeaning: target.meaning,
+    prefill,
+  };
 }
 
-export function parseSmartQuery(rawQuery: string): SmartQueryResult | null {
+export function parseSmartQuery(rawQuery: string): SmartQueryResult[] {
   const query = normalizeIdioms(rawQuery.trim());
-  if (!looksLikeNaturalQuery(query)) return null;
+  if (!looksLikeNaturalQuery(query)) return [];
 
   // Falling back to scanning the *whole* query when no target pattern
   // matched (rather than only ever using a carved-out remainder) means a
   // free-form list of quantities with no "solve for"/"when" structure at
-  // all — "mass 5kg kinetic energy 100j" — still gets scanned in full for
-  // findBestCandidate's elimination-based target inference to work with.
+  // all — "mass 5kg kinetic energy 100j", "r = 6" — still gets scanned in
+  // full for elimination-based target inference to work with.
   const targetMatch = extractTargetPhrase(query);
   const clauses = parseKnownClauses(targetMatch?.remainder ?? query);
   // Without an explicit target phrase or any actual numbers, elimination
@@ -392,50 +625,14 @@ export function parseSmartQuery(rawQuery: string): SmartQueryResult | null {
   // concepts is the minimum that makes elimination meaningful; a lone
   // phrase is just a keyword search and should fall through to one.
   const hasValue = clauses.some((c) => c.value !== undefined);
-  if (!targetMatch && !hasValue && clauses.length < 2) return null;
+  if (!targetMatch && !hasValue && clauses.length < 2) return [];
 
-  const candidate = findBestCandidate(targetMatch?.phrase ?? null, clauses);
-  if (!candidate) return null;
+  const results = findCandidates(targetMatch?.phrase ?? null, clauses)
+    .map(buildResult)
+    .filter((r): r is SmartQueryResult => r !== null);
 
-  const { formula, target, allVars, matched } = candidate;
-  const knownValues: Record<string, number> = {};
-  const knowns: KnownValue[] = [];
-  let allHaveValues = true;
-  let anyMatched = false;
-  for (const meta of allVars) {
-    if (meta.key === target.key) continue;
-    const found = matched.get(meta.key);
-    const value = found?.clause.value ?? meta.defaultValue;
-    if (found) anyMatched = true;
-    if (value === undefined) {
-      allHaveValues = false;
-      continue;
-    }
-    knownValues[meta.key] = value;
-    knowns.push({ symbol: meta.symbol, meaning: meta.meaning, value, unit: unitForMeaning(meta.meaning) });
-  }
-
-  if (allHaveValues && anyMatched) {
-    const value = solveForUnknown(formula.calc!.residual, knownValues, target.key);
-    if (value !== null) {
-      return {
-        kind: 'answer',
-        formula,
-        targetSymbol: target.symbol,
-        targetMeaning: target.meaning,
-        targetUnit: unitForMeaning(target.meaning),
-        value,
-        knowns,
-        prefill: knownValues,
-      };
-    }
-  }
-
-  return {
-    kind: 'formula-match',
-    formula,
-    targetSymbol: target.symbol,
-    targetMeaning: target.meaning,
-    prefill: knownValues,
-  };
+  // Worked answers first, then formulas that only matched.
+  const answers = results.filter((r) => r.kind === 'answer');
+  const matches = results.filter((r) => r.kind === 'formula-match');
+  return [...answers, ...matches].slice(0, MAX_RESULTS);
 }

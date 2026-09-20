@@ -32,6 +32,9 @@ interface FormulaDetailProps {
   // Only ever meant for the formula's own top-level `calc` — a variant
   // card (picked after the fact via the dropdown) always opens blank.
   prefill?: Record<string, number>;
+  // Which shape of a multi-shape card to open on; `prefill` then applies to
+  // that shape rather than the card's (nonexistent) top-level calculator.
+  initialVariantIndex?: number;
   onClose: () => void;
   onJump: (formula: Formula) => void;
 }
@@ -50,7 +53,14 @@ function panelTarget() {
   };
 }
 
-export function FormulaDetail({ formula, originRect, prefill, onClose, onJump }: FormulaDetailProps) {
+export function FormulaDetail({
+  formula,
+  originRect,
+  prefill,
+  initialVariantIndex,
+  onClose,
+  onJump,
+}: FormulaDetailProps) {
   const [target] = useState(panelTarget);
   const cat = categoryMap[formula.category];
   const panelRef = useRef<HTMLDivElement>(null);
@@ -66,10 +76,10 @@ export function FormulaDetail({ formula, originRect, prefill, onClose, onJump }:
   // For a multi-shape card (e.g. "Area Formulas"), only one variant is shown
   // at a time via the dropdown below, picked by index — reset back to the
   // first shape whenever the panel switches to a different formula card.
-  const [variantIndex, setVariantIndex] = useState(0);
+  const [variantIndex, setVariantIndex] = useState(initialVariantIndex ?? 0);
   useEffect(() => {
-    setVariantIndex(0);
-  }, [formula.id]);
+    setVariantIndex(initialVariantIndex ?? 0);
+  }, [formula.id, initialVariantIndex]);
   const activeVariant = formula.variants?.[variantIndex];
 
   const initial = originRect
@@ -133,6 +143,7 @@ export function FormulaDetail({ formula, originRect, prefill, onClose, onJump }:
                 key={`calc-${formula.id}-${activeVariant.label}`}
                 latex={activeVariant.latex}
                 calc={activeVariant.calc}
+                initialValues={variantIndex === initialVariantIndex ? prefill : undefined}
               >
                 <VariablesList variables={activeVariant.variables} />
               </FormulaBoxWithCalculator>

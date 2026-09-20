@@ -13,6 +13,18 @@ interface CalcRow {
 interface CalculatorPanelProps {
   open: boolean;
   onClose: () => void;
+  // The pull-tab circle the panel grows out of and shrinks back into.
+  originRect: DOMRect | null;
+  onExited: () => void;
+}
+
+// The floating card's resting rect: inset from every edge (tighter on a
+// phone), with the matching corner radius.
+function panelTarget() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const inset = vw <= 640 ? 6 : 10;
+  return { left: inset, top: inset, width: vw - inset * 2, height: vh - inset * 2, borderRadius: vw <= 640 ? 22 : 28 };
 }
 
 // Intercepts are hunted for across a fixed, generous domain rather than
@@ -151,12 +163,13 @@ function ChevronsIcon() {
   );
 }
 
-export function CalculatorPanel({ open, onClose }: CalculatorPanelProps) {
+export function CalculatorPanel({ open, onClose, originRect, onExited }: CalculatorPanelProps) {
   const [rows, setRows] = useState<CalcRow[]>(() => [makeRow()]);
   const [history, setHistory] = useState<CalcRow[][]>([]);
   const [future, setFuture] = useState<CalcRow[][]>([]);
   const [listCollapsed, setListCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(computeSidebarWidth);
+  const [target, setTarget] = useState(panelTarget);
   // Coalesces a burst of rapid edits (typing a word, dragging a slider)
   // into a single undo step, captured from the state right before the
   // burst started rather than one step per keystroke/tick.
@@ -345,24 +358,57 @@ export function CalculatorPanel({ open, onClose }: CalculatorPanelProps) {
   useEffect(() => {
     function onResize() {
       setSidebarWidth(computeSidebarWidth());
+      setTarget(panelTarget());
     }
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
   return (
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={onExited}>
       {open && (
         <motion.div
           className="calculator-panel glass"
-          initial={{ x: '100%' }}
-          animate={{ x: 0 }}
-          exit={{ x: '100%' }}
-          transition={{ type: 'spring', stiffness: 300, damping: 34 }}
+          // Same idea as the search bar: the card physically grows from the
+          // pull-tab circle to its resting rect, and shrinks back into it.
+          initial={
+            originRect
+              ? {
+                  left: originRect.left,
+                  top: originRect.top,
+                  width: originRect.width,
+                  height: originRect.height,
+                  borderRadius: originRect.width / 2,
+                }
+              : { ...target, opacity: 0 }
+          }
+          animate={{ ...target, opacity: 1 }}
+          exit={
+            originRect
+              ? {
+                  left: originRect.left,
+                  top: originRect.top,
+                  width: originRect.width,
+                  height: originRect.height,
+                  borderRadius: originRect.width / 2,
+                  transition: { type: 'spring', damping: 34, stiffness: 320 },
+                }
+              : { ...target, opacity: 0 }
+          }
+          transition={{ type: 'spring', damping: 32, stiffness: 260 }}
           role="dialog"
           aria-label="Calculator"
         >
-          <div className="calculator-panel-body">
+          {/* Laid out at its final size the whole time and just clipped by
+              the growing card (never squished), fading in once there's room
+              — so the graph doesn't re-measure on every animation frame. */}
+          <motion.div
+            className="calculator-panel-body"
+            style={{ position: 'absolute', left: 0, top: 0, width: target.width - 2, height: target.height - 2 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { delay: 0.14, duration: 0.2 } }}
+            exit={{ opacity: 0, transition: { duration: 0.1 } }}
+          >
             <motion.div
               className="calculator-expression-list"
               animate={{ width: listCollapsed ? 0 : sidebarWidth }}
@@ -437,7 +483,7 @@ export function CalculatorPanel({ open, onClose }: CalculatorPanelProps) {
               </span>
             </button>
             <CalculatorGraph curves={curves} verticals={verticals} points={points} onClose={onClose} />
-          </div>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>

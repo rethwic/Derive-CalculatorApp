@@ -15,13 +15,18 @@ interface DetailState {
   formula: Formula;
   rect: DOMRect | null;
   prefill?: Record<string, number>;
+  variantIndex?: number;
 }
 
 function App() {
   const [detail, setDetail] = useState<DetailState | null>(null);
 
-  const openDetail = (formula: Formula, rect: DOMRect | null, prefill?: Record<string, number>) =>
-    setDetail({ formula, rect, prefill });
+  const openDetail = (
+    formula: Formula,
+    rect: DOMRect | null,
+    prefill?: Record<string, number>,
+    variantIndex?: number,
+  ) => setDetail({ formula, rect, prefill, variantIndex });
 
   return (
     <DetailContext.Provider value={{ openDetail }}>
@@ -45,6 +50,7 @@ function App() {
                   formula={detail.formula}
                   originRect={detail.rect}
                   prefill={detail.prefill}
+                  initialVariantIndex={detail.variantIndex}
                   onClose={() => setDetail(null)}
                   onJump={(formula) => setDetail({ formula, rect: null })}
                 />
