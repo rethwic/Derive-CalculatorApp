@@ -531,7 +531,8 @@ a {
   z-index: 1;
   max-width: 1100px;
   margin: 0 auto;
-  padding: 24px 24px 100px;
+  /* Top padding leaves room for the dynamic island pinned above. */
+  padding: 64px 24px 100px;
 }
 
 .subject-page-header {
@@ -1727,37 +1728,80 @@ a {
 
 /* ---------------- Graphing calculator (global) ---------------- */
 
-/* A handle docked to the dead center of the right edge on every page — a
-   full circle in the same language as the workspace's own round icon
-   buttons (rather than a tall pill, which read as a foreign shape here),
-   sitting just off the edge instead of being sliced in half by it. */
+/* The calculator button: a round black pill the same height as the island and
+   sitting right beside it (see .top-bar below). It stays laid out but hidden
+   while the calculator is open, so the panel can shrink back into its exact
+   spot and the island doesn't shift. */
 .calculator-pull-tab {
-  position: fixed;
-  top: 50%;
-  right: 20px;
-  width: 52px;
-  height: 52px;
+  position: relative;
+  flex-shrink: 0;
+  width: var(--island-h);
+  height: var(--island-h);
+  padding: 0;
+  border: none;
   border-radius: 50%;
-  transform: translateY(-50%);
-  z-index: 30;
+  background: #000;
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--ink);
   cursor: pointer;
-  transition: transform 0.15s ease, border-color 0.15s ease, color 0.2s ease;
+  pointer-events: auto;
+  transition: transform 0.15s ease, background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Hover (or press) turns it white — the same white the calculator panel
+   starts from when it opens out of the button. While the calculator is open
+   it stays white underneath, and eases back to black once the panel has
+   shrunk back into it. */
+.calculator-pull-tab:hover,
+.calculator-pull-tab:active,
+.calculator-pull-tab:focus-visible,
+.calculator-pull-tab-active {
+  background: #fff;
+  color: #000;
+}
+
+.calculator-pull-tab:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: 2px;
+}
+
+/* The button is small, so its tap area is larger than what's drawn. */
+.calculator-pull-tab::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
 }
 
 .calculator-pull-tab:hover {
-  transform: translateY(-50%) scale(1.06);
-  border-color: var(--brand-color);
-  color: var(--brand-color);
+  transform: scale(1.08);
 }
 
 .calculator-pull-tab svg {
-  width: 20px;
-  height: 20px;
+  width: calc(var(--island-h) * 0.58);
+  height: calc(var(--island-h) * 0.58);
   flex-shrink: 0;
+}
+
+/* The button's icon, sized and placed like the real button, sitting at the
+   panel's top-left while the panel is still button-sized. */
+.calculator-panel-seed {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.calculator-panel-seed svg {
+  width: 58%;
+  height: 58%;
 }
 
 /* A floating card inset from every edge — not a docked sidebar — so the
@@ -1770,6 +1814,11 @@ a {
   flex-direction: column;
   overflow: hidden;
   border-radius: 28px;
+  /* Nearly opaque rather than the usual 32% glass: it holds a graph and
+     text inputs, and on browsers where backdrop-filter is dropped or weak
+     (many phones and in-app views) the page behind would otherwise show
+     through sharply and fight with the content. */
+  background: rgba(248, 248, 252, 0.96);
   box-shadow:
     inset 0 1px 0 var(--glass-highlight),
     0 32px 72px rgba(60, 64, 90, 0.28);
@@ -2353,9 +2402,7 @@ a {
   /* --- Landing --- */
   .landing-page {
     gap: 28px;
-    /* Bottom padding leaves room for the calculator button docked in the
-       bottom-right corner, so it never sits on top of the contact link. */
-    padding: 40px 16px calc(84px + env(safe-area-inset-bottom));
+    padding: 40px 16px calc(28px + env(safe-area-inset-bottom));
   }
   .landing-search-group {
     width: 100%;
@@ -2372,7 +2419,7 @@ a {
 
   /* --- Subject page --- */
   .subject-page {
-    padding: 16px 16px calc(96px + env(safe-area-inset-bottom));
+    padding: 60px 16px calc(96px + env(safe-area-inset-bottom));
   }
   .subject-page-header {
     flex-direction: column;
@@ -2493,17 +2540,6 @@ a {
     font-size: 16px;
   }
 
-  /* --- Graphing calculator button: out of the way, bottom right --- */
-  .calculator-pull-tab {
-    top: auto;
-    bottom: calc(20px + env(safe-area-inset-bottom));
-    right: 16px;
-    transform: none;
-  }
-  .calculator-pull-tab:hover {
-    transform: scale(1.06);
-  }
-
   /* --- Workspace: no hover on a phone, so the left-edge menu becomes a
      dock along the bottom that is always visible. --- */
   .workspace-edge-zone {
@@ -2534,4 +2570,108 @@ a {
   .workspace-card-body {
     max-height: 52dvh;
   }
+}
+
+/* ---------------- Dynamic island ---------------- */
+
+/* The top bar: island and calculator button side by side, centered as a
+   group. Sits under modals and the search scrim (z-index 50+) but above page
+   content, and only the button takes clicks. --k is the one knob for the
+   whole group's size — every dimension below is a multiple of it, so the pill,
+   digits, seams and button all scale together (and layout follows). */
+.top-bar {
+  --k: 0.82;
+  --island-h: calc(34px * var(--k));
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top));
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(10px * var(--k));
+  pointer-events: none;
+}
+
+.dynamic-island {
+  /* The pill stays small; the digits inside are set larger than the slots
+     that hold them, so each one fills its cell edge to edge and is sliced by
+     the seams between cells — like the digits on a bedside smart clock. --row
+     is the spacing between digits on a drum, far taller than the window so
+     the next digit is nowhere in view until it rolls in. */
+  --window: var(--island-h);
+  --row: calc(60px * var(--k));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--window);
+  padding: 0 calc(16px * var(--k));
+  border-radius: 999px;
+  background: #000;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: calc(38px * var(--k));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  user-select: none;
+}
+
+.island-slot {
+  display: flex;
+  align-items: center;
+}
+
+/* Each slot is a narrow vertical cell that only ever shows the current
+   digit; the digit is a touch wider than the cell, so its edges are trimmed
+   by the straight seams between cells. */
+.island-window {
+  display: block;
+  width: calc(16.5px * var(--k));
+  height: var(--window);
+  /* clip-path rather than overflow: hidden, so each edge can be clipped (or
+     not) on its own: top and bottom always, and the sides only where another
+     cell butts up against them. */
+  clip-path: inset(0);
+}
+
+/* The outermost digits have nothing beside them, so they aren't trimmed on
+   their outer edge — the pill's padding leaves room for the full glyph. */
+.island-slot:first-child .island-window {
+  clip-path: inset(0 0 0 calc(-12px * var(--k)));
+}
+
+.island-slot:last-child .island-window {
+  clip-path: inset(0 calc(-12px * var(--k)) 0 0);
+}
+
+/* A hairline of the pill's black between cells: wherever a digit runs into a
+   neighbor, it reads as a thin dark line cutting across it. */
+.island-slot + .island-slot .island-window {
+  margin-left: calc(2px * var(--k));
+}
+
+/* --pos is how many digits the drum has rolled, set from JS every frame.
+   The strip starts with one spare digit above, hence the +1. */
+.island-strip {
+  --pos: 0;
+  display: block;
+  transform: translateY(calc((var(--window) - var(--row)) / 2 - (var(--pos) + 1) * var(--row)));
+  will-change: transform;
+}
+
+.island-digit {
+  /* Flex centering, not text-align: a digit wider than its cell would
+     otherwise fall back to the left edge and spill out only on the right,
+     instead of being centered and trimmed equally on both sides. */
+  display: flex;
+  justify-content: center;
+  height: var(--row);
+  line-height: var(--row);
+  letter-spacing: 0;
+  /* The font's digits sit above the middle of their line box; nudge them
+     down so they look centered in the pill. */
+  position: relative;
+  top: 0.11em;
 }

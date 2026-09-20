@@ -5,7 +5,7 @@ import { LandingPage } from './pages/LandingPage';
 import { SubjectPage } from './pages/SubjectPage';
 import { WorkspacePage } from './pages/WorkspacePage';
 import { ContactPage } from './pages/ContactPage';
-import { CalculatorLauncher } from './components/CalculatorLauncher';
+import { TopBar } from './components/TopBar';
 import { FormulaDetail } from './components/FormulaDetail';
 import { DetailContext } from './context/DetailContext';
 import { WorkspaceProvider } from './context/WorkspaceContext';
@@ -42,7 +42,7 @@ function App() {
               <Route path="/:subjectId" element={<SubjectPage />} />
             </Routes>
 
-            <CalculatorLauncher />
+            <TopBar />
 
             <AnimatePresence>
               {detail && (

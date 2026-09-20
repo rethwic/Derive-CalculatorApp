@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { CalculatorIcon } from './CalculatorIcon';
 import { motion, AnimatePresence } from 'framer-motion';
 import { classifyRow, colorForIndex, type RowResult } from '../lib/mathEngine';
 import { CalculatorExpressionRow, type SliderRange } from './CalculatorExpressionRow';
@@ -17,6 +18,13 @@ interface CalculatorPanelProps {
   originRect: DOMRect | null;
   onExited: () => void;
 }
+
+// The card starts (and ends) as the white circle the button turns into on
+// hover, then settles into the panel's own near-white surface.
+const CIRCLE_COLOR = 'rgba(255, 255, 255, 1)';
+const PANEL_COLOR = 'rgba(248, 248, 252, 0.96)';
+const CIRCLE_SHADOW = 'inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 6px 18px rgba(0, 0, 0, 0.28)';
+const PANEL_SHADOW = 'inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 32px 72px rgba(60, 64, 90, 0.28)';
 
 // The floating card's resting rect: inset from every edge (tighter on a
 // phone), with the matching corner radius.
@@ -379,10 +387,12 @@ export function CalculatorPanel({ open, onClose, originRect, onExited }: Calcula
                   width: originRect.width,
                   height: originRect.height,
                   borderRadius: originRect.width / 2,
+                  backgroundColor: CIRCLE_COLOR,
+                  boxShadow: CIRCLE_SHADOW,
                 }
               : { ...target, opacity: 0 }
           }
-          animate={{ ...target, opacity: 1 }}
+          animate={{ ...target, opacity: 1, backgroundColor: PANEL_COLOR, boxShadow: PANEL_SHADOW }}
           exit={
             originRect
               ? {
@@ -391,14 +401,31 @@ export function CalculatorPanel({ open, onClose, originRect, onExited }: Calcula
                   width: originRect.width,
                   height: originRect.height,
                   borderRadius: originRect.width / 2,
+                  backgroundColor: CIRCLE_COLOR,
+                  boxShadow: CIRCLE_SHADOW,
                   transition: { type: 'spring', damping: 34, stiffness: 320 },
                 }
               : { ...target, opacity: 0 }
           }
-          transition={{ type: 'spring', damping: 32, stiffness: 260 }}
+          transition={{ type: 'spring', damping: 30, stiffness: 280 }}
           role="dialog"
           aria-label="Calculator"
         >
+          {/* The button's own icon, riding along at the card's top-left while
+              it's still button-sized: it stays visible for the first instant
+              of opening and the last instant of closing, so the white circle
+              never looks blank. */}
+          {originRect && (
+            <motion.span
+              className="calculator-panel-seed"
+              style={{ width: originRect.width, height: originRect.height }}
+              initial={{ opacity: 1 }}
+              animate={{ opacity: 0, transition: { duration: 0.15 } }}
+              exit={{ opacity: 1, transition: { duration: 0.12, delay: 0.18 } }}
+            >
+              <CalculatorIcon />
+            </motion.span>
+          )}
           {/* Laid out at its final size the whole time and just clipped by
               the growing card (never squished), fading in once there's room
               — so the graph doesn't re-measure on every animation frame. */}
