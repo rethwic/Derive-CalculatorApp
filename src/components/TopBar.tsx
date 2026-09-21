@@ -26,6 +26,27 @@ export function TopBar() {
   const [origin, setOrigin] = useState<DOMRect | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
+  // While the calculator is up, the top bar rides above it so the button can
+  // close it again (see index.css). The button itself turns black once the
+  // panel has grown around it, so it stays visible on the panel's light
+  // surface, and goes white again as the panel shrinks back into it.
+  const [dark, setDark] = useState(false);
+  useEffect(() => {
+    if (active) document.documentElement.dataset.calcOpen = 'true';
+    else delete document.documentElement.dataset.calcOpen;
+    return () => {
+      delete document.documentElement.dataset.calcOpen;
+    };
+  }, [active]);
+  useEffect(() => {
+    if (!open) {
+      setDark(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setDark(true), 320);
+    return () => window.clearTimeout(timer);
+  }, [open]);
+
   // The button never unmounts, so its rect can be re-measured if the window
   // changes size while the calculator is open — the panel shrinks back into
   // wherever the button really is by then.
@@ -71,11 +92,13 @@ export function TopBar() {
           <button
             ref={buttonRef}
             type="button"
-            className={`calculator-pull-tab${active ? ' calculator-pull-tab-active' : ''}`}
-            aria-label="Open calculator"
-            aria-hidden={active}
-            tabIndex={active ? -1 : 0}
-            onClick={openCalculator}
+            className={`calculator-pull-tab${active ? ' calculator-pull-tab-active' : ''}${dark ? ' calculator-pull-tab-dark' : ''}`}
+            aria-label={open ? 'Close calculator' : 'Open calculator'}
+            aria-expanded={open}
+            onClick={() => {
+              if (open) setOpen(false);
+              else if (!active) openCalculator();
+            }}
           >
             <CalculatorIcon />
           </button>

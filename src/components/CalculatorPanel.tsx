@@ -27,13 +27,61 @@ const PANEL_COLORS = { light: 'rgba(248, 248, 252, 0.96)', dark: 'rgba(20, 22, 3
 const CIRCLE_SHADOW = 'inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 6px 18px rgba(0, 0, 0, 0.28)';
 const PANEL_SHADOW = 'inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 32px 72px rgba(60, 64, 90, 0.28)';
 
-// The floating card's resting rect: inset from every edge (tighter on a
-// phone), with the matching corner radius.
-function panelTarget() {
+// The floating card's rect: by default inset from every edge (tighter on a
+// phone), with the matching corner radius. Dragging a bottom corner sets a
+// smaller size, which the card keeps centered in the window.
+interface PanelSize {
+  width: number;
+  height: number;
+}
+
+function panelInset() {
+  return window.innerWidth <= 640 ? 6 : 10;
+}
+
+function clampSize(size: PanelSize): PanelSize {
+  const inset = panelInset();
+  const maxW = window.innerWidth - inset * 2;
+  const maxH = window.innerHeight - inset * 2;
+  return {
+    width: Math.round(Math.max(Math.min(420, maxW), Math.min(maxW, size.width))),
+    height: Math.round(Math.max(Math.min(320, maxH), Math.min(maxH, size.height))),
+  };
+}
+
+// How far the card has been dragged from the middle of the window.
+interface PanelOffset {
+  x: number;
+  y: number;
+}
+
+const NO_OFFSET: PanelOffset = { x: 0, y: 0 };
+
+// Keeps the whole card inside the window, however it's been moved or resized.
+function clampOffset(offset: PanelOffset, size: PanelSize): PanelOffset {
+  const inset = panelInset();
+  const maxX = Math.max(0, (window.innerWidth - size.width) / 2 - inset);
+  const maxY = Math.max(0, (window.innerHeight - size.height) / 2 - inset);
+  return {
+    x: Math.max(-maxX, Math.min(maxX, offset.x)),
+    y: Math.max(-maxY, Math.min(maxY, offset.y)),
+  };
+}
+
+function panelTarget(size: PanelSize | null, offset: PanelOffset) {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const inset = vw <= 640 ? 6 : 10;
-  return { left: inset, top: inset, width: vw - inset * 2, height: vh - inset * 2, borderRadius: vw <= 640 ? 22 : 28 };
+  const inset = panelInset();
+  const full = { width: vw - inset * 2, height: vh - inset * 2 };
+  const { width, height } = size ? clampSize(size) : full;
+  const o = clampOffset(offset, { width, height });
+  return {
+    left: Math.round((vw - width) / 2 + o.x),
+    top: Math.round((vh - height) / 2 + o.y),
+    width,
+    height,
+    borderRadius: vw <= 640 ? 22 : 28,
+  };
 }
 
 // Intercepts are hunted for across a fixed, generous domain rather than
@@ -107,9 +155,7 @@ function findXIntercepts(evaluate: (x: number) => number): number[] {
 // instead of being squeezed down to a sliver behind a full-size sidebar.
 const MAX_SIDEBAR_WIDTH = 300;
 const MIN_SIDEBAR_WIDTH = 140;
-function computeSidebarWidth() {
-  if (typeof window === 'undefined') return MAX_SIDEBAR_WIDTH;
-  const panelWidth = window.innerWidth - 20; // the panel's own 10px inset on each side
+function computeSidebarWidth(panelWidth: number) {
   return Math.round(Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, panelWidth * 0.5)));
 }
 
@@ -177,8 +223,19 @@ export function CalculatorPanel({ open, onClose, originRect, onExited }: Calcula
   const [history, setHistory] = useState<CalcRow[][]>([]);
   const [future, setFuture] = useState<CalcRow[][]>([]);
   const [listCollapsed, setListCollapsed] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(computeSidebarWidth);
-  const [target, setTarget] = useState(panelTarget);
+  // null = the full-window default; otherwise the size the user dragged to.
+  const [userSize, setUserSize] = useState<PanelSize | null>(null);
+  const [offset, setOffset] = useState<PanelOffset>(NO_OFFSET);
+  // True while dragging the card (moving or resizing), so it tracks the
+  // pointer exactly instead of springing after it.
+  const [drag, setDrag] = useState<'resize' | 'move' | null>(null);
+  const resizing = drag !== null;
+  const [viewport, setViewport] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const target = useMemo(() => panelTarget(userSize, offset), [userSize, offset, viewport]);
+  const sidebarWidth = computeSidebarWidth(target.width);
+  const grab = useRef<{ dx: number; dy: number; cx: number; cy: number } | null>(null);
+  const moveGrab = useRef<{ x: number; y: number; start: PanelOffset } | null>(null);
   const PANEL_COLOR = PANEL_COLORS[useTheme()];
   // Coalesces a burst of rapid edits (typing a word, dragging a slider)
   // into a single undo step, captured from the state right before the
@@ -362,17 +419,75 @@ export function CalculatorPanel({ open, onClose, originRect, onExited }: Calcula
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  // Keeps the sidebar's expanded width in step with the viewport — e.g.
-  // rotating a phone or resizing the window — rather than only computing
-  // it once at mount.
+  // Keeps the card in step with the viewport — e.g. rotating a phone or
+  // resizing the window — rather than only computing it once at mount.
   useEffect(() => {
     function onResize() {
-      setSidebarWidth(computeSidebarWidth());
-      setTarget(panelTarget());
+      setViewport({ w: window.innerWidth, h: window.innerHeight });
     }
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  // Resizing from a bottom corner, the way a visionOS window does: the card
+  // stays centered and its grabbed corner follows the pointer, so pulling
+  // inward shrinks it (and pulling back out grows it, up to the full window).
+  function startResize(e: React.PointerEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    // Resizes about wherever the card currently is.
+    const cx = target.left + target.width / 2;
+    const cy = target.top + target.height / 2;
+    grab.current = {
+      cx,
+      cy,
+      dx: Math.abs(e.clientX - cx) - target.width / 2,
+      dy: Math.abs(e.clientY - cy) - target.height / 2,
+    };
+    setDrag('resize');
+  }
+
+  function moveResize(e: React.PointerEvent<HTMLButtonElement>) {
+    const g = grab.current;
+    if (!g) return;
+    const size = clampSize({
+      width: 2 * (Math.abs(e.clientX - g.cx) - g.dx),
+      height: 2 * (Math.abs(e.clientY - g.cy) - g.dy),
+    });
+    setUserSize(size);
+    setOffset(clampOffset({ x: g.cx - window.innerWidth / 2, y: g.cy - window.innerHeight / 2 }, size));
+  }
+
+  function endResize() {
+    grab.current = null;
+    setDrag(null);
+  }
+
+  // The bar under the card moves it, like a visionOS window's grab bar.
+  function startMove(e: React.PointerEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    moveGrab.current = { x: e.clientX, y: e.clientY, start: offset };
+    setDrag('move');
+  }
+
+  function moveMove(e: React.PointerEvent<HTMLButtonElement>) {
+    const g = moveGrab.current;
+    if (!g) return;
+    setOffset(
+      clampOffset({ x: g.start.x + e.clientX - g.x, y: g.start.y + e.clientY - g.y }, { width: target.width, height: target.height }),
+    );
+  }
+
+  function endMove() {
+    moveGrab.current = null;
+    setDrag(null);
+  }
+
+  function resetWindow() {
+    setUserSize(null);
+    setOffset(NO_OFFSET);
+  }
 
   return (
     <AnimatePresence onExitComplete={onExited}>
@@ -409,7 +524,7 @@ export function CalculatorPanel({ open, onClose, originRect, onExited }: Calcula
                 }
               : { ...target, opacity: 0 }
           }
-          transition={{ type: 'spring', damping: 30, stiffness: 280 }}
+          transition={resizing ? { duration: 0 } : { type: 'spring', damping: 30, stiffness: 280 }}
           role="dialog"
           aria-label="Calculator"
         >
@@ -512,6 +627,29 @@ export function CalculatorPanel({ open, onClose, originRect, onExited }: Calcula
               </span>
             </button>
             <CalculatorGraph curves={curves} verticals={verticals} points={points} onClose={onClose} />
+            {(['left', 'right'] as const).map((side) => (
+              <button
+                key={side}
+                type="button"
+                className={`calculator-resize calculator-resize-${side}${drag === 'resize' ? ' calculator-resize-active' : ''}`}
+                aria-label="Resize calculator. Drag to resize, double-click to reset."
+                onPointerDown={startResize}
+                onPointerMove={moveResize}
+                onPointerUp={endResize}
+                onPointerCancel={endResize}
+                onDoubleClick={resetWindow}
+              />
+            ))}
+            <button
+              type="button"
+              className={`calculator-move${drag === 'move' ? ' calculator-move-active' : ''}`}
+              aria-label="Move calculator. Drag to move, double-click to reset."
+              onPointerDown={startMove}
+              onPointerMove={moveMove}
+              onPointerUp={endMove}
+              onPointerCancel={endMove}
+              onDoubleClick={resetWindow}
+            />
           </motion.div>
         </motion.div>
       )}

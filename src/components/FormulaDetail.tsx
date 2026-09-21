@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { FormulaBox } from './FormulaBox';
 import { FormulaBoxWithCalculator } from './FormulaBoxWithCalculator';
 import { VariantPicker } from './VariantPicker';
-import type { Formula, Variable } from '../types';
+import type { Formula, FormulaAbout, Variable } from '../types';
 import { categoryMap } from '../data/categories';
 import { formulas } from '../data/formulas';
+import { formulaAbout } from '../data/about';
 import { showStatus } from '../lib/islandStatus';
 import { copyText } from '../lib/clipboard';
 
@@ -22,6 +23,68 @@ function VariablesList({ variables }: { variables: Variable[] }) {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+// The "About this formula" disclosure: what it's for is always shown above;
+// this holds when to reach for it, the traps, and a worked line.
+function AboutSection({ about, resetKey }: { about: FormulaAbout; resetKey: string }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    setOpen(false);
+  }, [resetKey]);
+  return (
+    <div className="detail-section detail-about">
+      <button
+        type="button"
+        className="detail-about-toggle"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span>About this formula</span>
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={open ? 'detail-about-chevron-open' : undefined}>
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            className="detail-about-body"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div className="detail-about-inner">
+              <h4>Use it when</h4>
+              <ul>
+                {about.when.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+              <h4>Watch out for</h4>
+              <ul>
+                {about.watch.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+              {about.notThis && (
+                <>
+                  <h4>Or maybe not</h4>
+                  <p>{about.notThis}</p>
+                </>
+              )}
+              {about.example && (
+                <>
+                  <h4>Example</h4>
+                  <p className="detail-about-example">{about.example}</p>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -123,6 +186,8 @@ export function FormulaDetail({
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  const about = formulaAbout[formula.id];
+
   const relatedFormulas = useMemo(
     () => (formula.related ?? []).map((id) => formulas.find((f) => f.id === id)).filter(Boolean),
     [formula.related],
@@ -160,6 +225,7 @@ export function FormulaDetail({
         </button>
         <span className="detail-category">{cat.name}</span>
         <h2 className="detail-title">{formula.title}</h2>
+        {about && <p className="detail-purpose">{about.purpose}</p>}
 
         {formula.variants && formula.variants.length > 0 && activeVariant ? (
           <>
@@ -200,6 +266,8 @@ export function FormulaDetail({
             )}
           </>
         )}
+
+        {about && <AboutSection about={about} resetKey={formula.id} />}
 
         {relatedFormulas.length > 0 && (
           <div className="detail-section">

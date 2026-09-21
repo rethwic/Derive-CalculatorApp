@@ -2139,7 +2139,8 @@ a {
 
 .calculator-graph-controls {
   position: absolute;
-  bottom: 16px;
+  /* Clear of the resize grabber in the corner. */
+  bottom: 42px;
   right: 16px;
   display: flex;
   align-items: center;
@@ -3936,4 +3937,230 @@ a {
    home link underneath — receive the clicks. */
 .island-status {
   z-index: 2;
+}
+
+/* ---------------- Calculator resize handles ---------------- */
+
+/* Two curved grabbers hugging the card's bottom corners, in the manner of a
+   visionOS window: a quiet arc at rest that firms up when you reach for it. */
+.calculator-resize {
+  position: absolute;
+  bottom: 0;
+  z-index: 6;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  touch-action: none;
+  cursor: nesw-resize;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.calculator-resize-left {
+  left: 0;
+}
+
+.calculator-resize-right {
+  right: 0;
+  cursor: nwse-resize;
+}
+
+.calculator-resize::after {
+  content: '';
+  position: absolute;
+  bottom: 8px;
+  width: 24px;
+  height: 24px;
+  border: 0 solid rgb(120 122 140 / 0.45);
+  transition: border-color 0.2s ease, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.calculator-resize-left::after {
+  left: 8px;
+  border-left-width: 4px;
+  border-bottom-width: 4px;
+  border-bottom-left-radius: 20px;
+}
+
+.calculator-resize-right::after {
+  right: 8px;
+  border-right-width: 4px;
+  border-bottom-width: 4px;
+  border-bottom-right-radius: 20px;
+}
+
+.calculator-resize:hover::after,
+.calculator-resize:focus-visible::after {
+  border-color: rgb(120 122 140 / 0.9);
+}
+
+.calculator-resize-active::after {
+  border-color: var(--brand-color);
+}
+
+.calculator-resize:focus-visible {
+  outline: none;
+}
+
+/* The grab bar: a short pill at the card's bottom edge that drags it around. */
+.calculator-move {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  z-index: 6;
+  width: 132px;
+  height: 26px;
+  padding: 0;
+  transform: translateX(-50%);
+  border: none;
+  background: transparent;
+  touch-action: none;
+  cursor: grab;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.calculator-move::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 9px;
+  width: 64px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgb(120 122 140 / 0.45);
+  transform: translateX(-50%);
+  transition: background-color 0.2s ease, width 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.calculator-move:hover::after,
+.calculator-move:focus-visible::after {
+  background: rgb(120 122 140 / 0.9);
+  width: 84px;
+}
+
+.calculator-move-active {
+  cursor: grabbing;
+}
+
+.calculator-move:focus-visible {
+  outline: none;
+}
+
+.calculator-move-active::after {
+  background: var(--brand-color);
+  width: 84px;
+}
+
+/* ---------------- About this formula ---------------- */
+
+.detail-purpose {
+  margin: 6px 0 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.detail-about-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 14px;
+  background: rgb(255 255 255 / calc(0.5 * var(--surface-k)));
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.detail-about-toggle:hover {
+  background: rgb(255 255 255 / calc(0.8 * var(--surface-k)));
+}
+
+.detail-about-toggle:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: 2px;
+}
+
+.detail-about-toggle svg {
+  width: 18px;
+  height: 18px;
+  color: var(--ink-soft);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.detail-about-toggle svg.detail-about-chevron-open {
+  transform: rotate(180deg);
+}
+
+.detail-about-body {
+  overflow: hidden;
+}
+
+.detail-about-inner {
+  padding: 12px 4px 2px;
+}
+
+.detail-about-inner h4 {
+  margin: 14px 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--brand-color);
+}
+
+.detail-about-inner h4:first-child {
+  margin-top: 2px;
+}
+
+.detail-about-inner ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.detail-about-inner li {
+  margin: 3px 0;
+}
+
+.detail-about-inner li::marker {
+  color: var(--brand-color);
+}
+
+.detail-about-inner p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.detail-about-example {
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--brand-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------- Calculator button closes the calculator ---------------- */
+
+/* Open, the calculator covers the window, so the top bar (clock and button)
+   rides above it: the button can then close what it opened. */
+:root[data-calc-open] .top-bar {
+  z-index: 32;
+}
+
+/* Once the panel has grown around it the button is black again — the panel's
+   surface is nearly white, so a white button would vanish — and it stays that
+   way under the pointer rather than flipping to white on hover. */
+.calculator-pull-tab.calculator-pull-tab-dark,
+.calculator-pull-tab.calculator-pull-tab-dark:hover,
+.calculator-pull-tab.calculator-pull-tab-dark:active {
+  background: #000;
+  color: #fff;
 }

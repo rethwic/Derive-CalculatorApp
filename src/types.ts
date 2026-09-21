@@ -32,6 +32,20 @@ export interface CalcVar {
   defaultValue?: number;
 }
 
+// Plain-language notes shown on a formula's page (see data/about.ts).
+export interface FormulaAbout {
+  // One sentence: what the formula is for. Always visible under the title.
+  purpose: string;
+  // The clues in a problem that point to this formula.
+  when: string[];
+  // Common traps and conditions.
+  watch: string[];
+  // The neighbouring formula people confuse it with, and how to choose.
+  notThis?: string;
+  // A single worked line.
+  example?: string;
+}
+
 export interface FormulaCalc {
   vars: CalcVar[];
   residual: (values: Record<string, number>) => number;
