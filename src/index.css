@@ -1,6 +1,7 @@
 :root {
-  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'SF Pro',
-    'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
+  --font-display: 'Space Grotesk', var(--font-sans);
   --bg-base: #f7f7f9;
   --ink: #1c1c1e;
   --ink-soft: rgba(28, 28, 30, 0.56);
@@ -8,7 +9,61 @@
   --glass-border: rgba(255, 255, 255, 0.65);
   --glass-highlight: rgba(255, 255, 255, 0.95);
   --glass-shadow: rgba(60, 64, 90, 0.14);
+
+  /* One color family for the entire site — a single indigo/blue accent, not
+     a palette-per-category. --brand-a/b/c form the title's gradient (light
+     blue easing through indigo into deep navy — depth, not a rainbow);
+     --brand-color/--brand-soft are the flat accent used everywhere else
+     (headings, hovers, focus rings, active states), so every "something
+     happens with color" moment in the app reads as the same brand. */
+  --brand-a: #60a5fa;
+  --brand-b: #4f46e5;
+  --brand-c: #312e81;
+  --brand-gradient: linear-gradient(90deg, var(--brand-a) 0%, var(--brand-b) 55%, var(--brand-c) 100%);
+  --brand-color: var(--brand-b);
+  /* The same colors as bare channels, for tints and shadows: rgb(var(--brand-rgb) / 0.2). */
+  --brand-rgb: 79 70 229;
+  --brand-a-rgb: 96 165 250;
+  --brand-soft: rgb(var(--brand-rgb) / 0.14);
+
+  /* Tokens that flip with the theme. --surface-k scales every translucent
+     white surface (1 = as designed for light; low in dark, where a bright wash
+     would glare). --tint-* is the color of hover washes and hairlines: dark
+     ink on light, near-white on dark. */
+  --surface-k: 1;
+  --tint-black: 0 0 0;
+  --tint-ink: 28 28 30;
+  --panel-bg: rgba(248, 248, 252, 0.96);
+  --cmdk-bg: rgba(255, 255, 255, 0.78);
+
   color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg-base: #0d0e13;
+  --ink: #ececf1;
+  --ink-soft: rgba(236, 236, 241, 0.58);
+  --glass-fill: rgba(30, 32, 46, 0.5);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-highlight: rgba(255, 255, 255, 0.08);
+  --glass-shadow: rgba(0, 0, 0, 0.5);
+
+  /* The brand indigo, lifted so it reads on a dark page; the title's
+     gradient ends light instead of navy for the same reason. */
+  --brand-a: #7cb4ff;
+  --brand-b: #7376f5;
+  --brand-c: #c4b5fd;
+  --brand-color: #7376f5;
+  --brand-rgb: 115 118 245;
+  --brand-a-rgb: 124 180 255;
+  --brand-soft: rgb(var(--brand-rgb) / 0.22);
+
+  --surface-k: 0.2;
+  --tint-black: 255 255 255;
+  --tint-ink: 236 236 241;
+  --panel-bg: rgba(20, 22, 31, 0.96);
+  --cmdk-bg: rgba(26, 28, 40, 0.88);
 }
 
 * {
@@ -18,17 +73,34 @@
 html,
 body,
 #root {
-  height: 100%;
+  min-height: 100%;
   margin: 0;
+}
+
+/* No scrollbars anywhere — scrolling itself (wheel, trackpad, touch, keys)
+   still works everywhere; only the bar is hidden. With none drawn, no page's
+   width changes depending on whether it scrolls, so centered elements like
+   the top bar can't shift between pages. */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
 }
 
 body {
   font-family: var(--font-sans);
   background: var(--bg-base);
   color: var(--ink);
-  overflow: hidden;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* Safety net: nothing on a subject page should ever need to scroll
+     sideways (that was the search-bar overflow bug above), so guard
+     against it outright rather than relying on every element individually
+     staying within bounds. */
+  overflow-x: hidden;
 }
 
 button,
@@ -36,27 +108,29 @@ input {
   font-family: inherit;
 }
 
+a {
+  color: inherit;
+}
+
 .app-shell {
   position: relative;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
 }
 
 /* ---------------- Background ---------------- */
 
-/* Near-white base with soft, low-opacity cool blue + lavender radial washes
-   — gentle depth, no visible "blob" shapes, nothing that competes with the
-   glass circles for attention. Static (no animation): the point is quiet
+/* Near-white base with a soft, low-opacity blue/indigo wash — one hue
+   family, not a multi-color blend — for gentle depth without competing
+   with the glass surfaces. Static (no animation): the point is quiet
    depth, not motion. */
 .aurora {
   position: fixed;
   inset: 0;
   z-index: 0;
   background:
-    radial-gradient(ellipse 900px 700px at 12% 8%, rgba(10, 132, 255, 0.07), transparent 60%),
-    radial-gradient(ellipse 800px 800px at 88% 10%, rgba(175, 110, 240, 0.055), transparent 62%),
-    radial-gradient(ellipse 1000px 800px at 50% 105%, rgba(90, 170, 250, 0.05), transparent 65%),
+    radial-gradient(ellipse 900px 700px at 12% 8%, rgb(var(--brand-rgb) / 0.08), transparent 60%),
+    radial-gradient(ellipse 800px 800px at 88% 10%, rgb(var(--brand-a-rgb) / 0.07), transparent 62%),
+    radial-gradient(ellipse 1000px 800px at 50% 105%, rgb(var(--brand-rgb) / 0.06), transparent 65%),
     var(--bg-base);
 }
 
@@ -72,64 +146,175 @@ input {
     0 8px 28px var(--glass-shadow);
 }
 
-/* ---------------- Top bar ---------------- */
+/* ---------------- Landing page ---------------- */
 
-.top-bar {
-  position: fixed;
-  top: 20px;
-  left: 0;
-  right: 0;
-  z-index: 20;
+/* The title owns the bulk of the screen; search + subject pills are anchored
+   near the bottom instead of forming a centered group with it. `pointer-
+   events: none` on the wrapper lets mouse-move reach the FloatingSymbols
+   layer underneath everywhere except the specific controls that opt back
+   in with `pointer-events: auto`. */
+.landing-page {
+  position: relative;
+  z-index: 1;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 0 20px;
+  padding: 32px 20px 48px;
   pointer-events: none;
 }
 
-.top-bar > * {
-  pointer-events: auto;
-}
-
-.brand {
+.landing-hero {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: 999px;
-  font-weight: 600;
-  font-size: 15px;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
+  justify-content: center;
 }
 
-.brand-mark {
-  font-size: 18px;
-  background: linear-gradient(135deg, #0a84ff, #bf5af2);
+.landing-search-group {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: min(480px, 90vw);
+}
+
+/* ---------------- Landing title ---------------- */
+
+/* No card, no backdrop — the title itself is the liquid material: the
+   gradient fill plus a bright top-edge highlight and a soft dark
+   underside (the text-shadow pair below) read as a glassy, glossy
+   surface. The edge glitch was specifically the per-pixel SVG ripple
+   filter tried earlier (warping individual pixels is inherently fragile
+   at large font sizes) — that's gone for good, but the glass sheen itself
+   was never the problem, so it stays. "Liquid" now comes from two
+   uniform, artifact-free transforms: a continuously flowing gradient
+   (color never sits still) and a very slight breathing scale — both
+   animate whole-element properties, so there's nothing left to deform at
+   the edges. */
+.landing-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(6rem, 21vw, 14rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 0.92;
+  background: var(--brand-gradient);
+  background-size: 220% 100%;
+  background-position: 0% 50%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  font-weight: 700;
+  text-shadow: 0 1px 0 rgb(255 255 255 / calc(0.55 * var(--surface-k))), 0 -1px 1px rgb(255 255 255 / calc(0.35 * var(--surface-k)));
+  filter: drop-shadow(0 24px 48px rgb(var(--brand-rgb) / 0.24));
+  cursor: default;
+  animation: landing-title-flow 10s ease-in-out infinite, landing-title-breathe 7s ease-in-out infinite;
 }
 
-/* ---------------- Search bar ---------------- */
+@keyframes landing-title-flow {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
 
+@keyframes landing-title-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.012);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-title {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .landing-title {
+    font-size: clamp(3.75rem, 22vw, 6.5rem);
+  }
+}
+
+/* ---------------- Symbol grid (background) ---------------- */
+
+/* A "polka dot" texture where the dots are tiny math symbols — static and
+   quiet at rest, lighting up into a little spotlight cluster around the
+   cursor. Sits behind everything (z-index: 0) but still receives pointer
+   events, since .landing-page is pointer-events: none except where
+   individual controls opt back in. */
+.symbol-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.symbol-grid-dot {
+  position: absolute;
+  transform: translate(-50%, -50%) scale(1);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 11px;
+  color: rgb(146, 149, 166);
+  opacity: 0.14;
+  will-change: transform, opacity, color;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .symbol-grid {
+    pointer-events: none;
+  }
+}
+
+/* ---------------- Search ---------------- */
+
+/* Fills whatever width its container gives it, rather than imposing its
+   own — the container decides how much room search gets (landing page vs.
+   the narrower slot in a subject page's header). Previously this forced
+   480px regardless of container, which on subject pages overflowed past
+   the header's 300px search slot — the cut-off bar and the resulting
+   horizontal scrollbar were the same bug. */
+.global-search {
+  position: relative;
+  width: 100%;
+}
+
+/* The search bar itself: a plain clickable pill (no real input). Clicking it
+   opens the command palette, where the actual searching happens. */
 .search-bar {
   display: flex;
   align-items: center;
   gap: 10px;
-  width: min(440px, 60vw);
-  padding: 11px 16px;
+  width: 100%;
+  padding: 13px 18px;
   border-radius: 999px;
-  transition: box-shadow 0.25s ease;
 }
 
-.search-bar:focus-within {
-  box-shadow:
-    inset 0 1px 0 var(--glass-highlight),
-    0 0 0 2px rgba(10, 132, 255, 0.55),
-    0 8px 32px rgba(0, 0, 0, 0.35);
+.search-bar-placeholder {
+  flex: 1;
+  min-width: 0;
+  color: var(--ink-soft);
+  font-size: 15px;
+  text-align: left;
+  /* In the narrower subject-page search slot, this text has no room to fit
+     on one line and was wrapping to two, inflating the bar's height.
+     Truncate instead of wrapping. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .search-icon {
@@ -139,166 +324,525 @@ input {
   flex-shrink: 0;
 }
 
-.search-bar input {
-  flex: 1;
-  min-width: 0;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--ink);
-  font-size: 15px;
-}
+/* ---------------- Subject pills (landing) ---------------- */
 
-.search-bar input::placeholder {
-  color: var(--ink-soft);
-}
-
-.search-count {
-  font-size: 12px;
-  color: var(--ink-soft);
-  white-space: nowrap;
-}
-
-.search-clear {
-  background: rgba(0, 0, 0, 0.08);
-  border: none;
-  color: var(--ink);
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
+/* width: 100% (rather than shrink-to-fit + center, as it was with 3 cards)
+   makes this span exactly as wide as .global-search above it — both are
+   100% of the same .landing-search-group — so Math's left edge and
+   Workspace's right edge land exactly on the search bar's own edges. */
+.subject-grid {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  gap: 12px;
+  width: 100%;
 }
 
-.search-clear:hover {
-  background: rgba(0, 0, 0, 0.14);
-}
-
-/* ---------------- Honeycomb ---------------- */
-
-.honeycomb-viewport {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  cursor: grab;
-  touch-action: none;
-  overscroll-behavior: contain;
-}
-
-.honeycomb-viewport:active {
-  cursor: grabbing;
-}
-
-.honeycomb-world {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 0;
-  height: 0;
-  transform-origin: 0 0;
-  will-change: transform;
-}
-
-.fc-card {
-  position: absolute;
-  width: 116px;
-  height: 116px;
-  border-radius: 50%;
-  transform-origin: center center;
-  will-change: transform, opacity;
-  cursor: pointer;
-  transition: opacity 0.35s ease;
-}
-
-/* Composes .glass directly (same class the search bar and detail panel use)
-   plus a per-subject color wash below — the exact material the detail view
-   uses, just circular, not a separate recipe tuned to look similar. */
-.fc-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+.subject-card {
+  position: relative;
   overflow: hidden;
+  flex: 1;
+  padding: 13px 10px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  text-align: center;
+  color: var(--ink);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
-/* Same wash .detail-panel::before uses (radial-gradient at a corner, faded
-   via var(--cat-soft)), just adapted from a rectangular band to a circle. */
-.fc-ring::before {
+.subject-card::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 25% 20%, var(--cat-soft), transparent 65%);
+  background: radial-gradient(circle at 25% 20%, var(--brand-soft), transparent 70%);
   pointer-events: none;
 }
 
-.fc-inner {
-  position: absolute;
-  inset: 0;
+.subject-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--brand-color);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 10px 22px rgba(60, 64, 90, 0.16);
+}
+
+/* ---------------- Subject page ---------------- */
+
+.subject-page {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  /* Top padding leaves room for the dynamic island pinned above. */
+  padding: 64px 24px 100px;
+}
+
+.subject-page-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 48px;
+}
+
+.subject-switcher {
+  display: flex;
+  gap: 8px;
+}
+
+/* Used for both <Link> (subject switcher) and <button> (category filter)
+   elements, so it resets button-specific UA styles too. */
+.subject-pill {
+  padding: 9px 16px;
+  border: none;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-decoration: none;
+  background: rgb(var(--tint-black) / 0.045);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.subject-pill:hover {
+  background: rgb(var(--tint-black) / 0.08);
+}
+
+.subject-pill-active {
+  color: #fff;
+  background: var(--brand-color);
+}
+
+.subject-pill-active:hover {
+  background: var(--brand-color);
+}
+
+.subject-page-search {
+  margin-left: auto;
+  /* Explicit flex-basis + max-width rather than width: min(300px, 100%) —
+     as a flex item, that width's 100% branch resolved against the flex
+     container's leftover space rather than clamping the way a block
+     element would, letting the search bar grow far past 300px. */
+  flex: 0 1 300px;
+  max-width: 300px;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.subject-page-title {
+  animation: rise-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.12s backwards;
+  position: relative;
+  padding: 8px 0 28px;
+}
+
+.subject-page-title h1 {
+  margin: 0;
+  font-size: clamp(32px, 5vw, 44px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--brand-color);
+}
+
+.category-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -8px 0 32px;
+}
+
+.subject-page-title p {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-size: 15px;
+}
+
+.category-section {
+  margin-bottom: 44px;
+}
+
+.category-heading {
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0 0 16px;
+  padding-left: 14px;
+  border-left: 4px solid var(--brand-color);
+}
+
+.formula-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 14px;
+}
+
+/* ---------------- Contact page ---------------- */
+
+/* Deliberately its own narrow, centered composition rather than the
+   subject-page grid shell — this is a single focused form, not a browsable
+   category of content, and (per its one and only entry point, the landing
+   page's own quiet link) it isn't meant to feel like a sibling of
+   Math/Science/Workspace in the site's structure. */
+.contact-page {
+  position: relative;
+  z-index: 1;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 88px 24px 100px;
+}
+
+.contact-hero {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.contact-hero-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 18px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
-  text-align: center;
+  color: #fff;
+  background: var(--brand-gradient);
+  box-shadow: 0 12px 26px rgb(var(--brand-rgb) / 0.32);
 }
 
-.fc-title {
-  color: var(--ink);
+.contact-hero-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.contact-hero h1 {
+  margin: 0 0 10px;
+  font-size: clamp(28px, 4vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--brand-color);
+}
+
+.contact-hero p {
+  margin: 0 auto;
+  max-width: 46ch;
+  color: var(--ink-soft);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 32px;
+  border-radius: 28px;
+}
+
+.contact-field-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.contact-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Only inside the horizontal name/email row does "220px" mean width — flex-
+   basis follows the flex CONTAINER's main axis, and .contact-field is also
+   used directly inside .contact-form's column layout (the topic group, the
+   message field), where the same rule would set a 220px height floor
+   instead and blow those out with dead space. */
+.contact-field-row > .contact-field {
+  flex: 1 1 200px;
+  /* A text input's default flex min-width is "auto", which resolves to its
+     own intrinsic preferred width (a plain <input> defaults toward ~20
+     characters) rather than the 200px basis above — that's what was
+     forcing a wrap even though two 200px fields plus the gap fit
+     comfortably. */
+  min-width: 0;
+}
+
+.contact-label {
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
-}
-
-.fc-card.is-dimmed .fc-ring {
-  filter: grayscale(0.6);
-}
-
-.fc-card.is-peak {
-  cursor: pointer;
-}
-
-/* The hovered card reads as "lit" material, not "outlined" UI: a brighter
-   glass edge, a deeper internal color wash, and a soft diffuse glow (no hard
-   ring) bleeding out from behind it, plus a taller elevation shadow. All of
-   it soft-edged, so it stays a property of the glass rather than a border
-   drawn on top of it. */
-.fc-card.is-peak .fc-ring::before {
-  background: radial-gradient(circle at 25% 20%, var(--cat-soft), transparent 72%);
-}
-
-.fc-card.is-peak .fc-ring {
-  border-color: rgba(255, 255, 255, 0.85);
-  box-shadow:
-    inset 0 1px 0 var(--glass-highlight),
-    0 0 30px 6px var(--cat-soft),
-    0 20px 38px rgba(60, 64, 90, 0.26);
-}
-
-/* ---------------- Hint pill ---------------- */
-
-.hint-pill {
-  position: fixed;
-  bottom: 26px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 15;
-  padding: 10px 20px;
-  border-radius: 999px;
-  font-size: 13px;
   color: var(--ink-soft);
-  white-space: nowrap;
-  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.contact-field input,
+.contact-field textarea {
+  border: 1px solid rgb(var(--tint-ink) / 0.12);
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--ink);
+  background: rgb(255 255 255 / calc(0.6 * var(--surface-k)));
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.contact-field input:focus,
+.contact-field textarea:focus {
+  border-color: var(--brand-color);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+.contact-field input::placeholder,
+.contact-field textarea::placeholder {
+  color: var(--ink-soft);
+}
+
+.contact-topic-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* A bigger, icon-led target than a plain text pill — this is the first
+   decision the form asks for, so it gets more visual weight than the
+   plain-text subject-pill convention used elsewhere in the site. */
+.contact-topic-btn {
+  flex: 1 1 140px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1.5px solid rgb(var(--tint-ink) / 0.1);
+  border-radius: 14px;
+  background: rgb(255 255 255 / calc(0.5 * var(--surface-k)));
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.contact-topic-btn:hover {
+  border-color: var(--brand-color);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.contact-topic-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.contact-topic-btn-active,
+.contact-topic-btn-active:hover {
+  /* Not just a transparent-colored border: a solid border and a gradient
+     background paint as two separate layers, and at a rounded corner their
+     anti-aliasing doesn't quite line up — a thin seam traces the curve even
+     though the border itself is invisible. Removing the border outright
+     (rather than merely hiding its color) avoids that entirely; the ~3px
+     it changes the box by across two edges is not something a viewer
+     switching between tabs would ever notice. */
+  border: none;
+  color: #fff;
+  background: var(--brand-gradient);
+}
+
+.contact-submit-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.contact-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 26px;
+  border: none;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--brand-gradient);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  box-shadow: 0 10px 22px rgb(var(--brand-rgb) / 0.28);
+}
+
+.contact-submit svg {
+  width: 17px;
+  height: 17px;
+}
+
+.contact-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.contact-submit:disabled {
+  opacity: 0.4;
+  cursor: default;
+  box-shadow: none;
+  transform: none;
+}
+
+.contact-submit-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 48ch;
+}
+
+.contact-submit-hint svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  opacity: 0.8;
+}
+
+@media (max-width: 560px) {
+  .contact-page {
+    padding-top: 76px;
+  }
+  .contact-form {
+    padding: 22px;
+  }
+}
+
+/* A quiet secondary link rather than a subject-card tile — a recommendation
+   isn't a content subject on par with Math/Science/Workspace, so it reads
+   better as a smaller, lower-emphasis invitation underneath the grid. */
+.landing-contact-link {
+  pointer-events: auto;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.landing-contact-link:hover {
+  color: var(--brand-color);
+}
+
+/* ---------------- Formula grid card ---------------- */
+
+/* Cards rise in one after another (--i is their position, capped so long
+   lists don't take forever). Fill mode is "backwards" on purpose: it holds the
+   hidden starting frame during each card's delay but lets go afterward, so the
+   hover lift below isn't overridden by a lingering animation transform. */
+@keyframes fgc-rise {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.fgc {
+  animation: fgc-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(0.18s + var(--i, 0) * 0.04s);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px 14px;
+  min-height: 118px;
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.fgc::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 25% 20%, var(--brand-soft), transparent 65%);
   pointer-events: none;
 }
 
-.hint-hidden {
-  opacity: 0;
-  transform: translateX(-50%) translateY(8px);
+.fgc:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 16px 30px rgba(60, 64, 90, 0.2);
+}
+
+.fgc-formula {
+  position: relative;
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.fgc-title {
+  position: relative;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  line-height: 1.3;
+}
+
+.fgc-add {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: rgb(255 255 255 / calc(0.6 * var(--surface-k)));
+  color: var(--brand-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.fgc-add svg {
+  width: 14px;
+  height: 14px;
+}
+
+.fgc:hover .fgc-add,
+.fgc-add:hover,
+.fgc-add:focus-visible {
+  opacity: 1;
+  background: rgb(255 255 255 / calc(0.9 * var(--surface-k)));
+}
+
+.fgc-add:active {
+  transform: scale(0.88);
+}
+
+.fgc-add-done {
+  opacity: 1;
+  background: var(--brand-color);
+  color: #fff;
+  border-color: var(--brand-color);
 }
 
 /* ---------------- Detail overlay ---------------- */
@@ -320,6 +864,14 @@ input {
   flex-direction: column;
   gap: 18px;
   overflow-y: auto;
+  /* Scroll still works (wheel, trackpad, touch) — the track/thumb chrome is
+     just not drawn, per request. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.detail-panel::-webkit-scrollbar {
+  display: none;
 }
 
 .detail-panel::before {
@@ -329,7 +881,7 @@ input {
   left: 0;
   right: 0;
   height: 140px;
-  background: radial-gradient(ellipse at 20% 0%, var(--cat-soft), transparent 70%);
+  background: radial-gradient(ellipse at 20% 0%, var(--brand-soft), transparent 70%);
   pointer-events: none;
 }
 
@@ -341,7 +893,7 @@ input {
   height: 32px;
   border-radius: 50%;
   border: none;
-  background: rgba(0, 0, 0, 0.08);
+  background: rgb(var(--tint-black) / 0.08);
   color: var(--ink);
   font-size: 18px;
   cursor: pointer;
@@ -352,7 +904,7 @@ input {
 }
 
 .detail-close:hover {
-  background: rgba(0, 0, 0, 0.14);
+  background: rgb(var(--tint-black) / 0.14);
 }
 
 .detail-category {
@@ -360,7 +912,7 @@ input {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--cat-color);
+  color: var(--brand-color);
 }
 
 .detail-title {
@@ -373,14 +925,164 @@ input {
 .detail-formula {
   padding: 28px 20px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.55);
+  background: rgb(255 255 255 / calc(0.55 * var(--surface-k)));
   border: 1px solid var(--glass-border);
   box-shadow: inset 0 1px 0 var(--glass-highlight);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   font-size: 22px;
+  overflow: hidden;
+  /* .detail-panel has a fixed height with overflow-y:auto for scrolling —
+     but that same overflow setting makes a flex child's automatic min-size
+     resolve to 0 (per spec) instead of its content size, so without this,
+     flex-shrink was free to squeeze this box shorter than the formula
+     actually needs whenever a tall card's total content overflowed the
+     panel, instead of just letting the panel scroll. */
+  flex-shrink: 0;
+}
+
+.detail-formula-scale {
+  display: inline-block;
+  transform-origin: center;
+  white-space: nowrap;
+}
+
+/* The worked substitution shown once solving a formula leaves exactly one
+   blank — rendered inside the same card as .detail-formula (as a nested
+   flex child, not a sibling), separated by a divider rather than its own
+   background/border so it reads as "part of this card" instead of a
+   second stacked box. Deliberately smaller and quieter than the formula
+   above it, since it's supporting work rather than the headline equation.
+   Its own horizontal scroll (rather than shrink-to-fit like the main box)
+   is fine here: unlike the primary formula, this is secondary detail
+   nobody needs to read at a glance, and a substituted expression can run
+   considerably wider once every symbol becomes a multi-digit
+   parenthesized number. */
+.detail-formula-work {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: stretch;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--glass-border);
+  color: var(--ink-soft);
+  font-size: 15px;
   overflow-x: auto;
+  /* Same fix as .detail-formula above, for the same reason: setting
+     overflow-x here makes this flex item's automatic min-height resolve
+     to 0 instead of its content size (per spec), which otherwise left
+     flex-shrink free to crush this down to a sliver — showing only a
+     stray scrollbar where the substituted formula and answer belong —
+     whenever the panel's total content ran taller than its fixed height. */
+  flex-shrink: 0;
+}
+
+.detail-formula-work .katex-wrap {
+  display: block;
+  width: max-content;
+  margin: 0 auto;
+}
+
+.detail-formula-work .katex-wrap:last-child {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.variant-picker {
+  position: relative;
+}
+
+.variant-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: 14px;
+  /* Matches .detail-formula's recipe rather than the raw .glass utility:
+     this control sits nested inside an already-blurred .glass panel, so a
+     second backdrop-filter has nothing further to blur and reads as flat.
+     A frosted fill + inset highlight + its own drop shadow is what actually
+     reads as a distinct glass surface here. */
+  background: rgb(255 255 255 / calc(0.55 * var(--surface-k)));
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 4px 14px rgba(60, 64, 90, 0.1);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.variant-trigger:hover {
+  border-color: var(--brand-color);
+  background-color: rgb(255 255 255 / calc(0.75 * var(--surface-k)));
+}
+
+.variant-trigger:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: -1px;
+}
+
+.variant-chevron {
+  width: 12px;
+  height: 8px;
+  color: var(--brand-color);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.variant-trigger[aria-expanded='true'] .variant-chevron {
+  transform: rotate(180deg);
+}
+
+/* The popup itself is a real DOM element (unlike a native <select>'s
+   OS-rendered list, which ignores almost all CSS) — a floating .glass card
+   in the same style as the search results dropdown, so it actually blurs
+   and tints the panel content behind it. */
+.variant-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  padding: 6px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 20px 48px rgba(60, 64, 90, 0.28);
+}
+
+.variant-option {
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.variant-option:hover {
+  background: rgb(var(--tint-black) / 0.05);
+}
+
+.variant-option-active {
+  color: var(--brand-color);
+  background: var(--brand-soft);
 }
 
 .detail-section h3 {
@@ -408,17 +1110,100 @@ input {
   font-size: 14px;
   padding: 8px 12px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.5);
+  background: rgb(255 255 255 / calc(0.5 * var(--surface-k)));
 }
 
 .var-symbol {
   font-weight: 700;
   min-width: 74px;
-  color: var(--cat-color);
+  color: var(--brand-color);
 }
 
 .var-meaning {
   color: var(--ink-soft);
+}
+
+.calc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.calc-header h3 {
+  margin: 0;
+}
+
+.calc-reset {
+  border: none;
+  background: none;
+  color: var(--brand-color);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.calc-reset:hover {
+  text-decoration: underline;
+}
+
+.calc-hint {
+  margin: -4px 0 12px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.calc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.calc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgb(255 255 255 / calc(0.5 * var(--surface-k)));
+  border: 1px solid transparent;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.calc-row-solved {
+  border-color: var(--brand-color);
+  background: var(--brand-soft);
+}
+
+.calc-symbol {
+  font-weight: 700;
+  color: var(--brand-color);
+  min-width: 52px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.calc-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: rgb(255 255 255 / calc(0.7 * var(--surface-k)));
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  color: var(--ink);
+}
+
+.calc-row-solved .calc-input {
+  background: transparent;
+  color: var(--brand-color);
+  font-weight: 700;
+}
+
+.calc-input:focus {
+  outline: 2px solid var(--brand-color);
+  outline-offset: -1px;
 }
 
 .detail-related {
@@ -431,7 +1216,7 @@ input {
   padding: 8px 14px;
   border-radius: 999px;
   border: 1px solid var(--glass-border);
-  background: rgba(255, 255, 255, 0.5);
+  background: rgb(255 255 255 / calc(0.5 * var(--surface-k)));
   color: var(--ink);
   font-size: 13px;
   font-weight: 600;
@@ -440,8 +1225,997 @@ input {
 }
 
 .related-chip:hover {
-  background: rgba(255, 255, 255, 0.85);
-  border-color: var(--cat-color);
+  background: rgb(255 255 255 / calc(0.85 * var(--surface-k)));
+  border-color: var(--brand-color);
+}
+
+/* ---------------- Workspace ---------------- */
+
+.workspace-page {
+  position: relative;
+  z-index: 1;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* A slim hover strip along the left edge — the icons themselves live inside
+   it (not just a trigger next to it), so moving from the empty edge onto an
+   icon never leaves the hoverable area and closes the menu prematurely. */
+.workspace-edge-zone {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 96px;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 14px;
+  padding-left: 20px;
+}
+
+.workspace-edge-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  /* A literal 24px rather than 50% — this is the exact radius the resize
+     button's shape-morph target (the zoom slider pill, also 48px tall)
+     uses too, so the shared layout animation between them only has to
+     tween width/position, not the radius itself. */
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  cursor: pointer;
+  text-decoration: none;
+  /* Hidden off-screen until the edge zone opens — see
+     .workspace-edge-zone-open below. */
+  transform: translateX(-72px);
+  opacity: 0;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+}
+
+.workspace-edge-zone-open .workspace-edge-icon {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.workspace-edge-zone .workspace-edge-icon:nth-child(1) {
+  transition-delay: 0s;
+}
+.workspace-edge-zone .workspace-edge-icon:nth-child(2) {
+  transition-delay: 0.03s;
+}
+.workspace-edge-zone .workspace-edge-icon:nth-child(3) {
+  transition-delay: 0.06s;
+}
+.workspace-edge-zone .workspace-edge-icon:nth-child(4) {
+  transition-delay: 0.09s;
+}
+
+.workspace-edge-icon:hover {
+  border-color: var(--brand-color);
+  color: var(--brand-color);
+}
+
+.workspace-edge-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* The resize icon and the zoom slider are one and the same shape — a single
+   element whose width Framer Motion animates open (spring, so it "grows"
+   rather than snaps), not two separate elements crossfaded via a shared
+   layoutId. That approach was prone to visible jitter/distortion as the
+   icon and slider content stretched non-uniformly with the box; animating
+   width directly on one persistent element sidesteps it entirely. */
+.workspace-resize-shape {
+  position: relative;
+  overflow: hidden;
+}
+
+.workspace-resize-icon-btn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.workspace-resize-icon-btn:hover {
+  color: var(--brand-color);
+}
+
+.workspace-resize-icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.workspace-zoom-slider-wrap {
+  position: absolute;
+  inset: 0;
+}
+
+.workspace-zoom-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  padding: 0 16px;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+/* No thumb at all — the track itself is the control. Click or drag
+   anywhere on it and the filled portion grows to meet the pointer, which
+   reads as a single continuous gesture instead of "grab this dot." */
+.workspace-zoom-track {
+  position: relative;
+  flex: 1;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  touch-action: none;
+  outline: none;
+}
+
+/* Keyboard-only focus ring, scoped to the track itself rather than the
+   browser's default outline (which drew a box around the whole pill). */
+.workspace-zoom-track:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: 4px;
+  border-radius: 999px;
+}
+
+.workspace-zoom-track::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 4px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: rgb(var(--tint-black) / 0.1);
+}
+
+.workspace-zoom-fill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--brand-color);
+  transform: translateY(-50%);
+  box-shadow: 0 0 0 rgb(var(--brand-rgb) / 0);
+  transition: box-shadow 0.15s ease;
+}
+
+/* While actively dragging: a subtle glow along the fill, the closest thing
+   to a "handle" this slider has — it lives at the fill's own edge instead
+   of being a separate shape sitting on top of it. */
+.workspace-zoom-track-active .workspace-zoom-fill {
+  box-shadow: 0 0 6px rgb(var(--brand-rgb) / 0.4);
+}
+
+.workspace-zoom-percent {
+  min-width: 40px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.workspace-canvas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  /* Dragging to pan is a mousedown-and-move gesture, which is exactly what
+     the browser's own text-selection also responds to — without this, every
+     pan drag also highlighted the empty-state hint text underneath it. */
+  user-select: none;
+}
+
+.workspace-canvas:active {
+  cursor: grabbing;
+}
+
+.workspace-world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.workspace-grid {
+  position: absolute;
+  left: -6000px;
+  top: -6000px;
+  width: 12000px;
+  height: 12000px;
+  background-image: radial-gradient(rgb(var(--brand-rgb) / 0.22) 1.5px, transparent 1.5px);
+  background-size: 28px 28px;
+  pointer-events: none;
+}
+
+.workspace-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
+  pointer-events: none;
+  color: var(--ink-soft);
+  /* A brief tip, not a permanent fixture: fully visible at first, then
+     fades out on its own. Re-mounting this element (e.g. clearing the
+     workspace back to empty later) restarts the animation from scratch. */
+  animation: workspace-hint-fade 6s ease forwards;
+}
+
+@keyframes workspace-hint-fade {
+  0%,
+  65% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.workspace-empty p {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.workspace-empty-hint {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+.workspace-card {
+  position: absolute;
+  width: 340px;
+  border-radius: 22px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workspace-card-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 10px 12px 16px;
+  cursor: grab;
+  background: rgb(255 255 255 / calc(0.35 * var(--surface-k)));
+  border-bottom: 1px solid var(--glass-border);
+  touch-action: none;
+  user-select: none;
+}
+
+.workspace-card-header:active {
+  cursor: grabbing;
+}
+
+.workspace-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workspace-card-close {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: rgb(var(--tint-black) / 0.08);
+  color: var(--ink);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.workspace-card-close:hover {
+  background: rgb(var(--tint-black) / 0.14);
+}
+
+.workspace-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  max-height: 60vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.workspace-card-body::-webkit-scrollbar {
+  display: none;
+}
+
+.workspace-card .detail-formula {
+  font-size: 18px;
+  padding: 20px 14px;
+}
+
+.workspace-card .calc-grid {
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+}
+
+/* ---------------- Graphing calculator (global) ---------------- */
+
+/* The calculator button: a round black pill the same height as the island and
+   sitting right beside it (see .top-bar below). It stays laid out but hidden
+   while the calculator is open, so the panel can shrink back into its exact
+   spot and the island doesn't shift. */
+.calculator-pull-tab {
+  position: relative;
+  flex-shrink: 0;
+  width: var(--island-h);
+  height: var(--island-h);
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #000;
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 0.15s ease, background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Hover (or press) turns it white — the same white the calculator panel
+   starts from when it opens out of the button. While the calculator is open
+   it stays white underneath, and eases back to black once the panel has
+   shrunk back into it. */
+.calculator-pull-tab:hover,
+.calculator-pull-tab:active,
+.calculator-pull-tab:focus-visible,
+.calculator-pull-tab-active {
+  background: #fff;
+  color: #000;
+}
+
+.calculator-pull-tab:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: 2px;
+}
+
+/* The button is small, so its tap area is larger than what's drawn. */
+.calculator-pull-tab::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+.calculator-pull-tab:hover {
+  transform: scale(1.08);
+}
+
+.calculator-pull-tab svg {
+  width: calc(var(--island-h) * 0.58);
+  height: calc(var(--island-h) * 0.58);
+  flex-shrink: 0;
+}
+
+/* The button's icon, sized and placed like the real button, sitting at the
+   panel's top-left while the panel is still button-sized. */
+.calculator-panel-seed {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.calculator-panel-seed svg {
+  width: 58%;
+  height: 58%;
+}
+
+/* A floating card inset from every edge — not a docked sidebar — so the
+   page stays visible as a slim frame all the way around instead of the
+   panel butting flush against the screen's own edges. */
+.calculator-panel {
+  position: fixed;
+  z-index: 31;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 28px;
+  /* Nearly opaque rather than the usual 32% glass: it holds a graph and
+     text inputs, and on browsers where backdrop-filter is dropped or weak
+     (many phones and in-app views) the page behind would otherwise show
+     through sharply and fight with the content. */
+  background: var(--panel-bg);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 32px 72px rgba(60, 64, 90, 0.28);
+}
+
+/* Lives inside the sidebar column now, not spanning the panel's full
+   width — the graph no longer has any bar running across its own top, only
+   the floating controls overlaid directly on it. Every icon here does
+   something (add a row, undo, redo), rather than spending the row on a
+   static title. */
+.calculator-sidebar-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgb(var(--tint-ink) / 0.08);
+}
+
+.calculator-toolbar-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calculator-toolbar-btn:hover:not(:disabled) {
+  background: rgb(var(--tint-black) / 0.06);
+  color: var(--brand-color);
+}
+
+.calculator-toolbar-btn:disabled {
+  color: var(--ink-soft);
+  opacity: 0.35;
+  cursor: default;
+}
+
+.calculator-toolbar-btn svg {
+  width: 17px;
+  height: 17px;
+}
+
+.calculator-chevrons-flipped {
+  display: flex;
+  transform: rotate(180deg);
+}
+
+.calculator-panel-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+/* The animated element (width springs to 0 to collapse) just clips —
+   the fixed-width inner div is what actually holds the padding/scroll, so
+   its content doesn't reflow or squish mid-animation, only gets clipped. */
+.calculator-expression-list {
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.calculator-sidebar-wrap {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.calculator-expression-list-inner {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* Sits between the expression list and the graph as a normal (non-
+   animated) flex item, so — unlike a button placed inside the collapsing
+   sidebar itself — it stays put and reachable at the panel's edge no
+   matter how narrow that sidebar currently is, including fully collapsed. */
+.calculator-sidebar-toggle {
+  flex-shrink: 0;
+  width: 16px;
+  align-self: stretch;
+  border: none;
+  /* --glass-border reads as basically invisible against this panel's pale
+     surface (see .calculator-expr-row above) — same fix here. */
+  border-right: 1px solid rgb(var(--tint-ink) / 0.08);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calculator-sidebar-toggle:hover {
+  background: rgb(var(--tint-black) / 0.05);
+  color: var(--brand-color);
+}
+
+.calculator-sidebar-toggle svg {
+  width: 12px;
+  height: 12px;
+}
+
+.calculator-expr-row {
+  padding: 10px 4px;
+  /* --glass-border is a bright highlight meant for a glass edge against a
+     colorful backdrop — nearly invisible here against the list's own pale
+     surface, so this needs an actual dark divider instead. */
+  border-bottom: 1px solid rgb(var(--tint-ink) / 0.08);
+}
+
+.calculator-expr-row-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The row's index — colored in to match its curve once it's plotted.
+   Empty rows (the always-present trailing blank one, mainly) show it
+   faded until you actually click into the row, echoing Desmos' own list. */
+.calculator-expr-number {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  background: rgb(var(--tint-black) / 0.06);
+  transition: opacity 0.15s ease;
+}
+
+.calculator-expr-row-empty .calculator-expr-number {
+  opacity: 0.4;
+}
+
+.calculator-expr-row-empty:focus-within .calculator-expr-number {
+  opacity: 1;
+}
+
+.calculator-expr-number svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* "add slider: a b all" — offered whenever a row references a letter
+   that isn't x, y, or a known constant/function. */
+.calculator-expr-slider-suggest {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 2px 8px 30px;
+}
+
+.calculator-expr-slider-suggest-label {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-right: 2px;
+}
+
+.calculator-expr-suggest-btn {
+  border: none;
+  border-radius: 7px;
+  background: rgb(var(--tint-black) / 0.06);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans, serif);
+  font-style: italic;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+
+.calculator-expr-suggest-btn:hover {
+  background: rgb(var(--tint-black) / 0.1);
+}
+
+.calculator-expr-suggest-btn-all {
+  background: var(--brand-color);
+  color: #fff;
+  font-style: normal;
+}
+
+.calculator-expr-suggest-btn-all:hover {
+  background: var(--brand-color);
+  opacity: 0.9;
+}
+
+/* A contentEditable div standing in for a text <input> — it needs the
+   single-line/no-wrap/no-outline behavior an input gets for free. */
+.calculator-expr-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  padding: 6px 2px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  outline: none;
+  scrollbar-width: none;
+}
+
+.calculator-expr-input::-webkit-scrollbar {
+  display: none;
+}
+
+/* Live superscript, entered by pressing "^" mid-expression. */
+.calc-sup {
+  font-size: 0.7em;
+  vertical-align: super;
+  line-height: 1;
+  /* Without this, Chrome paints a yellow "editable region" highlight on
+     nested contentEditable islands the moment they're focused. */
+  outline: none;
+  background: transparent;
+}
+
+/* Live stacked fraction, entered by pressing "/" — the numerator/
+   denominator spans are their own tiny editable islands within the
+   larger contentEditable field. */
+.calc-frac {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: middle;
+  margin: 0 3px;
+  font-size: 0.85em;
+  line-height: 1.3;
+}
+
+.calc-frac-num,
+.calc-frac-den {
+  display: block;
+  min-width: 10px;
+  padding: 0 3px;
+  text-align: center;
+  outline: none;
+  background: transparent;
+}
+
+.calc-frac-num {
+  border-bottom: 1.3px solid currentColor;
+}
+
+/* Live radical, entered by typing "sqrt"/"cbrt"/"nthroot" in full — the √
+   glyph plus an editable argument with a bar drawn over it (border-top)
+   standing in for the vinculum, and an optional small index for cube/nth
+   roots sitting in the radical's usual top-left notch. */
+.calc-radical {
+  display: inline-flex;
+  align-items: flex-end;
+  vertical-align: middle;
+  margin: 0 1px;
+}
+
+.calc-radical-index {
+  font-size: 0.65em;
+  margin-bottom: 0.5em;
+  margin-right: -1px;
+  min-width: 7px;
+  text-align: center;
+  outline: none;
+  background: transparent;
+}
+
+.calc-radical-index-fixed {
+  color: var(--ink-soft);
+}
+
+.calc-radical-symbol {
+  font-size: 1.05em;
+  line-height: 1;
+  /* The "√" glyph's own ink sits well short of its line box on every
+     platform font tested — its top-right tip lands visibly below and
+     left of where calc-radical-arg's border-top bar starts, reading as a
+     gap/missing corner where the hook should meet the vinculum. Nudging
+     the glyph up and right closes that gap so the two read as one
+     continuous stroke instead of two disconnected pieces. */
+  position: relative;
+  top: -0.32em;
+  margin-right: -0.08em;
+}
+
+.calc-radical-arg {
+  border-top: 1.3px solid currentColor;
+  padding: 1px 3px 0;
+  min-width: 10px;
+  text-align: center;
+  outline: none;
+  background: transparent;
+}
+
+.calculator-expr-input:focus {
+  outline: none;
+  border-bottom-color: var(--brand-color);
+}
+
+.calculator-expr-input-error {
+  border-bottom-color: rgba(199, 68, 64, 0.5);
+}
+
+/* The evaluated result of a plain-arithmetic row (no free variable to
+   plot) — shown inline instead of drawing a meaningless flat line. */
+.calculator-expr-result {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.calculator-expr-delete {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.calculator-expr-row:hover .calculator-expr-delete {
+  opacity: 1;
+}
+
+.calculator-expr-delete:hover {
+  background: rgb(var(--tint-black) / 0.08);
+}
+
+.calculator-expr-slider {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 2px 8px 18px;
+}
+
+.calculator-expr-slider-bound {
+  width: 34px;
+  border: none;
+  background: rgb(var(--tint-black) / 0.05);
+  border-radius: 6px;
+  padding: 2px 4px;
+  font-size: 11px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.calculator-expr-slider-bound-error {
+  background: rgba(199, 68, 64, 0.12);
+  color: #c74440;
+  box-shadow: inset 0 0 0 1px rgba(199, 68, 64, 0.5);
+}
+
+.calculator-expr-slider-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.calculator-expr-slider-error {
+  padding: 0 2px 6px 18px;
+  font-size: 11px;
+  color: #c74440;
+}
+
+.calculator-expr-slider-input {
+  flex: 1;
+  appearance: none;
+  -webkit-appearance: none;
+  height: 14px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.calculator-expr-slider-input::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--brand-color) var(--fill, 0%),
+    rgb(var(--tint-black) / 0.1) var(--fill, 0%)
+  );
+}
+
+.calculator-expr-slider-input::-moz-range-track {
+  height: 3px;
+  border-radius: 999px;
+  background: rgb(var(--tint-black) / 0.1);
+}
+
+.calculator-expr-slider-input::-moz-range-progress {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--brand-color);
+}
+
+.calculator-expr-slider-input::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid rgb(var(--tint-black) / 0.1);
+  box-shadow: 0 1px 3px rgba(60, 64, 90, 0.35);
+}
+
+.calculator-expr-slider-input::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid rgb(var(--tint-black) / 0.1);
+  box-shadow: 0 1px 3px rgba(60, 64, 90, 0.35);
+}
+
+.calculator-expr-slider-value {
+  min-width: 34px;
+  text-align: right;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.calculator-graph {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.calculator-graph-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+
+.calculator-graph-canvas:active {
+  cursor: grabbing;
+}
+
+.calculator-graph-controls {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calculator-graph-control-btn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: rgb(255 255 255 / calc(0.7 * var(--surface-k)));
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(60, 64, 90, 0.16);
+}
+
+.calculator-graph-control-btn:hover {
+  color: var(--brand-color);
+}
+
+.calculator-graph-control-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Floats directly on the graph's own top-right corner — replaces the
+   panel-wide toolbar's close button now that no bar runs across the top
+   of the graph at all. */
+.calculator-graph-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: rgb(255 255 255 / calc(0.7 * var(--surface-k)));
+  color: var(--ink);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(60, 64, 90, 0.16);
+}
+
+.calculator-graph-close:hover {
+  color: var(--brand-color);
+}
+
+/* A point's coordinate readout — shown on hover, or permanently once the
+   point's been clicked. Positioned via left/top set imperatively to the
+   point's current screen position (recomputed on every pan/zoom), with the
+   transform here doing the fixed part: centered above the point itself,
+   never intercepting pointer events so it can't block clicking the dot
+   underneath it or dragging the canvas through it. */
+.calculator-graph-point-label {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 10px));
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1.5px solid;
+  background: rgb(255 255 255 / calc(0.95 * var(--surface-k)));
+  color: var(--ink);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 14px rgba(60, 64, 90, 0.16);
+  z-index: 5;
 }
 
 /* ---------------- Misc ---------------- */
@@ -450,19 +2224,1716 @@ input {
   font-size: 1em;
 }
 
+/* ---------------- Mobile ---------------- */
+
+/* 100vh on a phone includes the area behind the collapsing browser bars, so
+   full-screen pages overshoot and their bottom controls get pushed off
+   screen. dvh tracks what's actually visible. */
+@supports (height: 100dvh) {
+  .landing-page,
+  .workspace-page {
+    height: 100dvh;
+  }
+  .app-shell {
+    min-height: 100dvh;
+  }
+}
+
+/* The touch-only hint is hidden on desktop, the mouse-only one on touch. */
+.workspace-hint-touch {
+  display: none;
+}
+
 @media (max-width: 640px) {
-  .top-bar {
+  /* --- Landing --- */
+  .landing-page {
+    gap: 28px;
+    padding: 40px 16px calc(28px + env(safe-area-inset-bottom));
+  }
+  .landing-search-group {
+    width: 100%;
+    gap: 12px;
+  }
+  .subject-grid {
+    gap: 8px;
+  }
+  .subject-card {
+    padding: 12px 4px;
+    font-size: 13.5px;
+    white-space: nowrap;
+  }
+
+  /* --- Subject page --- */
+  .subject-page {
+    padding: 60px 16px calc(96px + env(safe-area-inset-bottom));
+  }
+  .subject-page-header {
     flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  /* The four pills can be wider than the screen — scroll them sideways
+     instead of clipping or wrapping onto a second row. */
+  .subject-switcher,
+  .category-switcher {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-left: -16px;
+    margin-right: -16px;
+    padding: 0 16px;
+    scrollbar-width: none;
+  }
+  .subject-switcher::-webkit-scrollbar,
+  .category-switcher::-webkit-scrollbar {
+    display: none;
+  }
+  .subject-switcher .subject-pill,
+  .category-switcher .subject-pill {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .category-switcher {
+    margin-top: -8px;
+    margin-bottom: 24px;
+  }
+  /* In this column layout the desktop `flex: 0 1 300px` becomes a 300px
+     *height*, which is what left the big blank gap under the header. */
+  .subject-page-search {
+    flex: none;
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+  }
+  .subject-page-title {
+    padding-bottom: 20px;
+  }
+  .category-section {
+    margin-bottom: 32px;
+  }
+  .category-heading {
+    font-size: 17px;
+    margin-bottom: 12px;
+  }
+  .formula-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
-  .search-bar {
-    width: min(100%, 320px);
+  .fgc {
+    padding: 22px 8px 14px;
+    min-height: 104px;
+    border-radius: 18px;
   }
-  .hint-pill {
-    font-size: 11px;
-    padding: 8px 14px;
-    max-width: 90vw;
-    white-space: normal;
-    text-align: center;
+  .fgc-formula {
+    font-size: 13px;
+    max-width: 100%;
+    overflow: hidden;
   }
+  .fgc-add {
+    top: 6px;
+    right: 6px;
+    opacity: 1;
+  }
+  /* A blur layer per card (dozens on one page) is heavy for a phone GPU and
+     is what leaves stale "ghost" copies behind while scrolling. The cards
+     sit on a near-flat background, so a plain translucent fill looks the
+     same. */
+  .fgc.glass {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgb(255 255 255 / calc(0.55 * var(--surface-k)));
+  }
+
+  /* --- Search (16px keeps iOS from zooming the page on focus) --- */
+  .search-bar-placeholder {
+    font-size: 16px;
+  }
+
+  /* --- Detail panel --- */
+  .detail-panel {
+    padding: 24px 18px 22px;
+    gap: 16px;
+  }
+  .detail-close {
+    top: 14px;
+    right: 14px;
+  }
+  .detail-title {
+    font-size: 22px;
+    padding-right: 36px;
+  }
+  .detail-formula {
+    padding: 22px 12px;
+    font-size: 19px;
+  }
+  .calc-input,
+  .contact-field input,
+  .contact-field textarea {
+    font-size: 16px;
+  }
+
+  /* --- Workspace: no hover on a phone, so the left-edge menu becomes a
+     dock along the bottom that is always visible. --- */
+  .workspace-edge-zone {
+    top: auto;
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    left: 16px;
+    right: auto;
+    width: auto;
+    padding: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+  }
+  .workspace-edge-icon {
+    transform: none;
+    opacity: 1;
+  }
+  .workspace-empty {
+    padding: 0 28px;
+  }
+  .workspace-hint-desktop {
+    display: none;
+  }
+  .workspace-hint-touch {
+    display: block;
+  }
+  .workspace-card-body {
+    max-height: 52dvh;
+  }
+}
+
+/* ---------------- Dynamic island ---------------- */
+
+/* The top bar: island and calculator button side by side, centered as a
+   group. Sits under modals and the search scrim (z-index 50+) but above page
+   content, and only the button takes clicks. --k is the one knob for the
+   whole group's size — every dimension below is a multiple of it, so the pill,
+   digits, seams and button all scale together (and layout follows). */
+.top-bar {
+  --k: 0.82;
+  --island-h: calc(34px * var(--k));
+  /* The resting pill's width: four cells, three hairline gaps, and padding. */
+  --island-w: calc(104px * var(--k));
+  /* The island's width when held open (see .dynamic-island-link-expanded). */
+  --island-open-w: calc(314px * var(--k));
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top));
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(10px * var(--k));
+  pointer-events: none;
+}
+
+.dynamic-island {
+  /* The pill stays small; the digits inside are set larger than the slots
+     that hold them, so each one fills its cell edge to edge and is sliced by
+     the seams between cells — like the digits on a bedside smart clock. --row
+     is the spacing between digits on a drum, far taller than the window so
+     the next digit is nowhere in view until it rolls in. */
+  --window: var(--island-h);
+  --row: calc(60px * var(--k));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: var(--island-w);
+  height: var(--window);
+  /* Half the height reads as a full pill, and — unlike 999px — it can
+     animate smoothly to the rectangle's smaller corner radius. */
+  border-radius: calc(var(--island-h) / 2);
+  background: #000;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: calc(38px * var(--k));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  user-select: none;
+  transition:
+    width 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+/* Held down: open into a larger rounded rectangle. */
+.dynamic-island-link-expanded .dynamic-island {
+  width: var(--island-open-w);
+  height: calc(160px * var(--k));
+  border-radius: calc(26px * var(--k));
+}
+
+/* The top row: the day on the left, the digits (the home link) in the middle,
+   the date on the right. Resting, the side columns collapse to nothing, so
+   the pill is just the digits; opening widens the pill and they fade in.
+   It keeps its place at the top while the island grows downward. */
+.island-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  width: 100%;
+  height: var(--island-h);
+  flex-shrink: 0;
+}
+
+.island-digits {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--island-h);
+  padding: 0 calc(16px * var(--k));
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Day and date read as a matched pair of small, tracked-out capitals — the
+   same size, weight and tone on both sides of the time, in the manner of a
+   status bar. Open, the island is always white, so the ink is a fixed dark. */
+.island-side {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  line-height: 1.2;
+  font-size: calc(11.5px * var(--k));
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  color: rgb(0 0 0 / 0.62);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+/* Each is centered in the space between the island's edge and the time. The
+   tracking adds a little space after the last letter, so the padding is a touch
+   heavier on the leading side to keep the text optically centered. */
+.island-side-left,
+.island-side-right {
+  padding: 0 calc(4px * var(--k)) 0 calc(6px * var(--k));
+  text-align: center;
+}
+
+.dynamic-island-link-expanded .island-side {
+  opacity: 1;
+  transition: opacity 0.3s ease 0.15s;
+}
+
+/* The space below: the dark mode switch. Hidden (and unfocusable) until the
+   island is open. */
+.island-controls {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4px * var(--k));
+  width: calc(100% - 28px * var(--k));
+  margin-top: calc(4px * var(--k));
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(calc(-6px * var(--k)));
+  transition: opacity 0.2s ease, transform 0.3s ease, visibility 0s linear 0.3s;
+}
+
+.dynamic-island-link-expanded .island-controls {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: opacity 0.3s ease 0.15s, transform 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.15s, visibility 0s;
+}
+
+/* Open, the island is always white with dark text, so these use fixed dark
+   tints rather than the theme's. */
+.island-theme {
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--k));
+  width: 100%;
+  height: calc(32px * var(--k));
+  padding: 0 calc(8px * var(--k)) 0 calc(12px * var(--k));
+  border: none;
+  border-radius: calc(15px * var(--k));
+  background: rgb(0 0 0 / 0.07);
+  color: #000;
+  font: inherit;
+  font-size: calc(14px * var(--k));
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.island-theme:hover {
+  background: rgb(0 0 0 / 0.11);
+}
+
+.island-theme:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: 2px;
+}
+
+.island-theme svg {
+  flex-shrink: 0;
+  width: calc(16px * var(--k));
+  height: calc(16px * var(--k));
+}
+
+.island-theme-label {
+  flex: 1;
+  text-align: left;
+}
+
+/* An iOS-style switch: a soft grey track that fills with the site's own accent
+   color when on, and a white thumb with a layered shadow that gently stretches
+   while pressed (and springs a touch past its stop when it lands). */
+.island-switch {
+  --track-w: calc(42px * var(--k));
+  --track-h: calc(25px * var(--k));
+  --thumb: calc(21px * var(--k));
+  --inset: calc(2px * var(--k));
+  position: relative;
+  flex-shrink: 0;
+  width: var(--track-w);
+  height: var(--track-h);
+  border-radius: 999px;
+  background: rgb(120 120 128 / 0.32);
+  transition: background-color 0.25s ease;
+}
+
+.island-switch::after {
+  content: '';
+  position: absolute;
+  top: var(--inset);
+  left: var(--inset);
+  width: var(--thumb);
+  height: var(--thumb);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.15),
+    0 1px 1px rgba(0, 0, 0, 0.16),
+    0 3px 1px rgba(0, 0, 0, 0.06);
+  /* Steep at the start so the thumb leaves the moment you click, then a small
+     spring past the stop as it lands. */
+  transition:
+    transform 0.3s cubic-bezier(0.2, 1.1, 0.35, 1),
+    width 0.15s ease;
+}
+
+.island-theme[aria-checked='true'] .island-switch {
+  background: var(--brand-color);
+}
+
+.island-theme[aria-checked='true'] .island-switch::after {
+  transform: translateX(calc(var(--track-w) - var(--thumb) - var(--inset) * 2));
+}
+
+/* Pressed: the thumb stretches toward the direction it's about to travel. */
+.island-theme:active .island-switch::after {
+  width: calc(var(--thumb) + 5px * var(--k));
+}
+
+.island-theme[aria-checked='true']:active .island-switch::after {
+  transform: translateX(calc(var(--track-w) - var(--thumb) - var(--inset) * 2 - 5px * var(--k)));
+}
+
+/* The island is the home button: a plain link around the pill. The top bar
+   itself ignores clicks, so the link opts back in. */
+/* A fixed-size placeholder the size of the resting pill, so the top bar's
+   layout never moves when the island grows — the pill is anchored to its
+   top-center and opens outward from there, over its neighbors. */
+.dynamic-island-link {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+  width: var(--island-w);
+  height: var(--island-h);
+  border-radius: 999px;
+  color: inherit;
+  text-decoration: none;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+/* Open or showing a message, the island grows past its own footprint and over
+   the calculator button beside it, so it has to sit above it. */
+.dynamic-island-link-raised {
+  z-index: 3;
+}
+
+/* Pressed or open, hover no longer scales anything. The island grows and
+   shrinks under the cursor, so a hover effect (the grow, the color flip) would
+   flicker on and off as its edge crosses the pointer — and the grow has to be
+   let go of *before* the island starts opening, not during it: released while
+   the size animation runs, the two overlap and the island visibly wobbles. So
+   the grow releases the instant you press, on the ordinary quick transition,
+   and by the time a hold opens the island it is already at rest. It holds one
+   steady look, the inverted white, for as long as it's open. */
+/* (Doubled class names so this outranks the plain :hover grow further down —
+   equal priority would let the later rule win, and the grow would keep
+   toggling as the cursor crossed the moving edge.) */
+.dynamic-island-link.dynamic-island-link-pressed,
+.dynamic-island-link.dynamic-island-link-pressed:hover,
+.dynamic-island-link.dynamic-island-link-expanded,
+.dynamic-island-link.dynamic-island-link-expanded:hover {
+  transform: none;
+}
+
+.dynamic-island-link-expanded .dynamic-island {
+  background: #fff;
+  color: #000;
+}
+
+.island-anchor {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate3d(-50%, 0, 0);
+}
+
+.dynamic-island-link:hover {
+  transform: scale(1.05);
+}
+
+/* Same invert as the calculator button: hover (or press) flips the black pill
+   to white with black digits. */
+.dynamic-island-link:hover .dynamic-island,
+.dynamic-island-link:active .dynamic-island,
+.dynamic-island-link:focus-visible .dynamic-island {
+  background: #fff;
+  color: #000;
+}
+
+.dynamic-island-link:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: 3px;
+}
+
+.island-slot {
+  display: flex;
+  align-items: center;
+}
+
+/* Each slot is a narrow vertical cell that only ever shows the current
+   digit; the digit is a touch wider than the cell, so its edges are trimmed
+   by the straight seams between cells. */
+.island-window {
+  display: block;
+  width: calc(16.5px * var(--k));
+  height: var(--window);
+  /* clip-path rather than overflow: hidden, so each edge can be clipped (or
+     not) on its own: top and bottom always, and the sides only where another
+     cell butts up against them. */
+  clip-path: inset(0);
+}
+
+/* The outermost digits have nothing beside them, so they aren't trimmed on
+   their outer edge — the pill's padding leaves room for the full glyph. */
+.island-slot:first-child .island-window {
+  clip-path: inset(0 0 0 calc(-12px * var(--k)));
+}
+
+.island-slot:last-child .island-window {
+  clip-path: inset(0 calc(-12px * var(--k)) 0 0);
+}
+
+/* A hairline of the pill's black between cells: wherever a digit runs into a
+   neighbor, it reads as a thin dark line cutting across it. */
+.island-slot + .island-slot .island-window {
+  margin-left: calc(2px * var(--k));
+}
+
+/* --pos is how many digits the drum has rolled, set from JS every frame.
+   The strip starts with one spare digit above, hence the +1. */
+.island-strip {
+  --pos: 0;
+  display: block;
+  transform: translateY(calc((var(--window) - var(--row)) / 2 - (var(--pos) + 1) * var(--row)));
+  will-change: transform;
+}
+
+.island-digit {
+  /* Flex centering, not text-align: a digit wider than its cell would
+     otherwise fall back to the left edge and spill out only on the right,
+     instead of being centered and trimmed equally on both sides. */
+  display: flex;
+  justify-content: center;
+  height: var(--row);
+  line-height: var(--row);
+  letter-spacing: 0;
+  /* The font's digits sit above the middle of their line box; nudge them
+     down so they look centered in the pill. */
+  position: relative;
+  top: 0.11em;
+}
+
+/* Route transitions animate this wrapper (see AnimatedRoutes). */
+.route-shell {
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fgc,
+  .subject-page-title {
+    animation: none;
+  }
+}
+
+/* ---------------- Dark theme touch-ups ---------------- */
+
+/* A near-black background wants a little more color in the washes, and the
+   black island and calculator button need a hairline to stay visible on it. */
+:root[data-theme='dark'] .aurora {
+  background:
+    radial-gradient(ellipse 900px 700px at 12% 8%, rgb(var(--brand-rgb) / 0.16), transparent 60%),
+    radial-gradient(ellipse 800px 800px at 88% 10%, rgb(var(--brand-a-rgb) / 0.12), transparent 62%),
+    radial-gradient(ellipse 1000px 800px at 50% 105%, rgb(var(--brand-rgb) / 0.12), transparent 65%),
+    var(--bg-base);
+}
+
+:root[data-theme='dark'] .dynamic-island,
+:root[data-theme='dark'] .calculator-pull-tab {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+/* ---------------- Theme switch ripple ---------------- */
+
+/* The circular reveal is driven from JS (see setTheme). These just switch off
+   the browser's default cross-fade so the new theme wipes in cleanly over the
+   old one instead of blending with it. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+/* The incoming theme is shown through a soft-edged circular mask (grown from
+   JS). It starts at zero size, so nothing of it shows until the reveal begins. */
+::view-transition-new(root) {
+  z-index: 2;
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 0%, #000 80%, transparent 100%);
+  mask-image: radial-gradient(circle closest-side, #000 0%, #000 80%, transparent 100%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 0 0;
+  mask-size: 0 0;
+}
+
+/* While a theme switch is under way, the switch itself snaps to its new state
+   instead of sliding, so the ripple's still pictures both show it already
+   flipped and the ripple can start immediately. */
+:root[data-theme-switching] .island-switch,
+:root[data-theme-switching] .island-switch::after {
+  transition: none !important;
+}
+
+/* ---------------- Accent palettes ---------------- */
+
+/* Each accent sets the same handful of variables as the default (Iris) at the
+   top of this file: a light, a main and a deep stop for the gradient, the flat
+   accent, and the channel versions used by tints and shadows. The dark rules
+   lift the colors so they read on a dark page. They come after the theme rules
+   on purpose, and the [data-theme='dark'] pairs are more specific, so they win. */
+
+:root[data-accent='ember'] {
+  --brand-a: #ff9a3c;
+  --brand-b: #e4472b;
+  --brand-c: #8f1d1d;
+  --brand-color: #e4472b;
+  --brand-rgb: 228 71 43;
+  --brand-a-rgb: 255 154 60;
+}
+
+:root[data-accent='ember'][data-theme='dark'] {
+  --brand-a: #ffb066;
+  --brand-b: #f2683f;
+  --brand-c: #ffb4a0;
+  --brand-color: #f2683f;
+  --brand-rgb: 242 104 63;
+  --brand-a-rgb: 255 176 102;
+}
+
+:root[data-accent='forest'] {
+  --brand-a: #34d399;
+  --brand-b: #178a4a;
+  --brand-c: #0b4a2a;
+  --brand-color: #178a4a;
+  --brand-rgb: 23 138 74;
+  --brand-a-rgb: 52 211 153;
+}
+
+:root[data-accent='forest'][data-theme='dark'] {
+  --brand-a: #6ee7b7;
+  --brand-b: #2ea867;
+  --brand-c: #b7f0cf;
+  --brand-color: #2ea867;
+  --brand-rgb: 46 168 103;
+  --brand-a-rgb: 110 231 183;
+}
+
+:root[data-accent='rose'] {
+  --brand-a: #f472b6;
+  --brand-b: #db2777;
+  --brand-c: #831843;
+  --brand-color: #db2777;
+  --brand-rgb: 219 39 119;
+  --brand-a-rgb: 244 114 182;
+}
+
+:root[data-accent='rose'][data-theme='dark'] {
+  --brand-a: #f9a8d4;
+  --brand-b: #e8579c;
+  --brand-c: #fbcfe8;
+  --brand-color: #e8579c;
+  --brand-rgb: 232 87 156;
+  --brand-a-rgb: 249 168 212;
+}
+
+/* ---------------- Accent picker (inside the open island) ---------------- */
+
+/* The same tinted row as the dark mode switch: a label and, on the right, one
+   round swatch per accent. */
+.island-accent {
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--k));
+  width: 100%;
+  height: calc(32px * var(--k));
+  padding: 0 calc(10px * var(--k)) 0 calc(12px * var(--k));
+  border-radius: calc(16px * var(--k));
+  background: rgb(0 0 0 / 0.07);
+  color: #000;
+  font-size: calc(14px * var(--k));
+  font-weight: 600;
+}
+
+.island-accent-label {
+  flex: 1;
+  text-align: left;
+}
+
+.island-swatches {
+  display: flex;
+  align-items: center;
+  gap: calc(9px * var(--k));
+}
+
+.island-swatch {
+  flex-shrink: 0;
+  width: calc(20px * var(--k));
+  height: calc(20px * var(--k));
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--from), var(--to));
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.14);
+  cursor: pointer;
+  transition:
+    transform 0.25s cubic-bezier(0.34, 1.4, 0.64, 1),
+    box-shadow 0.2s ease;
+}
+
+.island-swatch:hover {
+  transform: scale(1.15);
+}
+
+.island-swatch:active {
+  transform: scale(0.93);
+}
+
+/* The chosen one gets a white gap and a ring in its own color. */
+.island-swatch[aria-checked='true'] {
+  box-shadow:
+    0 0 0 calc(2px * var(--k)) #fff,
+    0 0 0 calc(3.6px * var(--k)) var(--to);
+}
+
+.island-swatch:focus-visible {
+  outline: 2px solid #000;
+  outline-offset: calc(4px * var(--k));
+}
+
+:root[data-theme-switching] .island-swatch {
+  transition: none !important;
+}
+
+/* ---------------- Island status message ---------------- */
+
+/* The message sits over the top row, centered. It's always rendered (so its
+   width can be measured and screen readers hear changes) but invisible until
+   a status is showing. */
+.dynamic-island {
+  position: relative;
+}
+
+.island-status {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--k));
+  height: var(--island-h);
+  white-space: nowrap;
+  font-family: var(--font-sans);
+  font-size: calc(14px * var(--k));
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.island-status-icon {
+  display: flex;
+  color: var(--brand-a);
+}
+
+.island-status-icon svg {
+  width: calc(16px * var(--k));
+  height: calc(16px * var(--k));
+}
+
+.island-top {
+  transition: opacity 0.2s ease;
+}
+
+/* Showing a message: the pill widens to fit it, the time steps aside and the
+   message fades in a beat later. */
+.dynamic-island-link-status .dynamic-island {
+  width: max(var(--island-w), calc(var(--status-w) + 34px * var(--k)));
+}
+
+.dynamic-island-link-status .island-top {
+  opacity: 0;
+}
+
+.dynamic-island-link-status .island-status {
+  opacity: 1;
+  transition: opacity 0.25s ease 0.12s;
+}
+
+/* ---------------- First-visit hint ---------------- */
+
+@keyframes island-hint-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(var(--brand-rgb) / 0.55);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 calc(12px * var(--k)) rgb(var(--brand-rgb) / 0);
+  }
+}
+
+.dynamic-island-link-hinting .island-anchor::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  animation: island-hint-pulse 1.8s ease-out infinite;
+}
+
+.island-hint-slot {
+  position: absolute;
+  top: calc(100% + 10px * var(--k));
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.island-hint {
+  display: block;
+  padding: calc(7px * var(--k)) calc(14px * var(--k));
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg-base);
+  font-family: var(--font-sans);
+  font-size: calc(13px * var(--k));
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+}
+
+/* A little notch pointing up at the island. */
+.island-hint::before {
+  content: '';
+  position: absolute;
+  top: calc(-4px * var(--k));
+  left: 50%;
+  width: calc(10px * var(--k));
+  height: calc(10px * var(--k));
+  background: inherit;
+  border-radius: 2px;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dynamic-island-link-hinting .island-anchor::before {
+    animation: none;
+  }
+}
+
+/* ---------------- Copy LaTeX button (formula detail) ---------------- */
+
+.detail-copy {
+  position: absolute;
+  top: 18px;
+  right: 58px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgb(var(--tint-black) / 0.08);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.detail-copy:hover {
+  background: rgb(var(--tint-black) / 0.14);
+  color: var(--brand-color);
+}
+
+.detail-copy svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 640px) {
+  .detail-copy {
+    top: 14px;
+    right: 54px;
+  }
+}
+
+/* ---------------- Search bar shortcut chip ---------------- */
+
+.search-kbd {
+  flex-shrink: 0;
+  padding: 3px 7px;
+  border-radius: 7px;
+  border: 1px solid rgb(var(--tint-ink) / 0.14);
+  background: rgb(var(--tint-black) / 0.05);
+  color: var(--ink-soft);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Shown at every window width — a narrow desktop window has a keyboard too.
+   Hidden only on phones and tablets (a touch screen with no hover), where there
+   is no shortcut to press. */
+@media (hover: none) and (pointer: coarse) {
+  .search-kbd {
+    display: none;
+  }
+}
+
+/* ---------------- Command palette ---------------- */
+
+.cmdk-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 14vh 16px 0;
+  background: rgba(60, 64, 90, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.cmdk {
+  width: min(620px, 100%);
+  border-radius: 22px;
+  overflow: hidden;
+  /* Much more opaque than the usual glass: with the results faded out, a
+     see-through frame would all but vanish while it shrinks back to the bar.
+     (Declared after .glass, so it wins; the blur behind it stays.) */
+  background: var(--cmdk-bg);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 28px 70px rgba(20, 22, 40, 0.35);
+}
+
+/* The content is always laid out at the palette's final width (set inline), so
+   while the frame around it grows or shrinks it is only ever clipped — never
+   reflowed. */
+.cmdk-inner {
+  display: flex;
+  flex-direction: column;
+}
+
+.cmdk-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cmdk-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 18px;
+  border-bottom: 1px solid rgb(var(--tint-ink) / 0.1);
+}
+
+.cmdk-search-icon {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+  color: var(--ink-soft);
+}
+
+.cmdk-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.cmdk-input::placeholder {
+  color: var(--ink-soft);
+}
+
+.cmdk-kbd,
+.cmdk-foot kbd {
+  display: inline-block;
+  min-width: 20px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid rgb(var(--tint-ink) / 0.16);
+  background: rgb(var(--tint-black) / 0.05);
+  color: var(--ink-soft);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.cmdk-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 8px 8px;
+}
+
+.cmdk-group {
+  padding: 12px 12px 5px;
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cmdk-empty {
+  padding: 28px 12px;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.cmdk-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cmdk-item[data-active='true'] {
+  background: var(--brand-soft);
+  box-shadow: inset 0 0 0 1px rgb(var(--brand-rgb) / 0.28);
+}
+
+.cmdk-lead {
+  flex-shrink: 0;
+  width: 104px;
+  display: flex;
+  justify-content: center;
+  font-size: 15px;
+}
+
+/* Keep a formula on one line — KaTeX would otherwise break after the "=". */
+.cmdk-lead .katex {
+  white-space: nowrap;
+}
+
+.cmdk-glyph {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: rgb(var(--tint-black) / 0.07);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.cmdk-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--from), var(--to));
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.14);
+}
+
+.cmdk-text {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cmdk-title {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmdk-sub {
+  color: var(--ink-soft);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A worked answer stands out: bigger, in the accent color. */
+.cmdk-item-answer .cmdk-title {
+  color: var(--brand-color);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.cmdk-enter {
+  flex-shrink: 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.cmdk-foot {
+  display: flex;
+  gap: 18px;
+  padding: 10px 18px;
+  border-top: 1px solid rgb(var(--tint-ink) / 0.1);
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.cmdk-foot span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+@media (max-width: 640px) {
+  .cmdk-scrim {
+    padding-top: 72px;
+  }
+  .cmdk-foot {
+    display: none;
+  }
+  .cmdk-lead {
+    width: 84px;
+  }
+}
+
+/* With a formula open, the clock and its messages sit above the blurred
+   backdrop so they stay sharp. Nothing in the bar is clickable then — a click
+   there passes through to the backdrop and closes the formula, as anywhere
+   else outside the panel. */
+:root[data-detail-open] .top-bar {
+  z-index: 52;
+}
+
+:root[data-detail-open] .top-bar * {
+  pointer-events: none !important;
+}
+
+/* ---------------- Calculator button makes room ---------------- */
+
+/* When the island grows (held open, or showing a message) it grows evenly to
+   both sides of its own center, so the calculator button beside it slides
+   right by exactly half the growth — keeping the same gap from the island's
+   edge instead of being covered. It uses the same duration and easing as the
+   island's width, so the two move as one. (`translate` is its own property,
+   so it doesn't fight the entrance animation's transform.) */
+.top-bar-button-slot {
+  translate: 0 0;
+  transition: translate 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dynamic-island-link-expanded ~ .top-bar-button-slot {
+  translate: calc((var(--island-open-w) - var(--island-w)) / 2) 0;
+}
+
+.dynamic-island-link-status ~ .top-bar-button-slot {
+  translate: calc((max(var(--island-w), var(--status-w) + 34px * var(--k)) - var(--island-w)) / 2) 0;
+}
+
+/* The search bar (or button) the command palette grows out of is hidden while
+   the palette is out, so the two read as one element that moved. The element
+   keeps its space, so nothing on the page shifts. */
+[data-away] {
+  visibility: hidden;
+}
+
+/* The palette's calculator answer, styled like a worked formula answer. */
+.cmdk-item-calc .cmdk-title {
+  color: var(--brand-color);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.cmdk-item-calc .cmdk-glyph {
+  background: var(--brand-soft);
+  color: var(--brand-color);
+  font-size: 18px;
+}
+
+/* ---------------- Timer ---------------- */
+
+/* Running, a badge appears at the pill's left: whole minutes left inside a ring
+   that drains over each minute. The pill widens by the badge's width (the
+   clock keeps its own room), and the calculator button slides over with it. */
+.top-bar {
+  --island-badge: calc(20px * var(--k));
+}
+
+.island-timer {
+  position: absolute;
+  top: 50%;
+  left: calc(4px * var(--k));
+  width: calc(26px * var(--k));
+  height: calc(26px * var(--k));
+  transform: translateY(-50%) scale(0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dynamic-island-link-timer .island-timer {
+  opacity: 1;
+  transform: translateY(-50%);
+  transition: opacity 0.25s ease 0.12s, transform 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.12s;
+}
+
+.island-timer-text {
+  font-family: var(--font-display);
+  font-size: calc(13px * var(--k));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.island-timer-text[data-long] {
+  font-size: calc(10.5px * var(--k));
+}
+
+.island-timer-is-paused .island-timer-text {
+  opacity: 0.55;
+}
+
+.dynamic-island-link-timer .dynamic-island {
+  width: calc(var(--island-w) + var(--island-badge));
+}
+
+.dynamic-island-link-timer .island-top {
+  padding-left: var(--island-badge);
+  box-sizing: border-box;
+}
+
+.island-top {
+  transition: opacity 0.2s ease, padding-left 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dynamic-island-link-timer ~ .top-bar-button-slot {
+  translate: calc(var(--island-badge) / 2) 0;
+}
+
+/* The ring: a faint full circle with the accent-colored arc on top, starting
+   at 12 o'clock and shortening clockwise. */
+.island-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+
+.island-ring circle {
+  fill: none;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+.island-ring-track {
+  stroke: rgb(128 128 128 / 0.32);
+}
+
+.island-ring-arc {
+  stroke: var(--brand-a);
+  transition: stroke-dasharray 0.3s linear, stroke 0.3s ease, opacity 0.2s ease;
+}
+
+.island-timer-is-paused .island-ring-arc {
+  stroke: rgb(128 128 128 / 0.75);
+}
+
+/* The open island's timer row: the same tinted row as the others. */
+.island-timer-row {
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--k));
+  width: 100%;
+  height: calc(32px * var(--k));
+  padding: 0 calc(8px * var(--k)) 0 calc(12px * var(--k));
+  border-radius: calc(16px * var(--k));
+  background: rgb(0 0 0 / 0.07);
+  color: #000;
+  font-size: calc(14px * var(--k));
+  font-weight: 600;
+}
+
+.island-timer-label {
+  flex: 1;
+  text-align: left;
+}
+
+.island-timer-presets,
+.island-timer-buttons {
+  display: flex;
+  align-items: center;
+  gap: calc(5px * var(--k));
+}
+
+.island-timer-preset {
+  height: calc(22px * var(--k));
+  padding: 0 calc(9px * var(--k));
+  border: none;
+  border-radius: 999px;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+  font: inherit;
+  font-size: calc(12px * var(--k));
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.island-timer-preset:hover {
+  background: var(--brand-color);
+  color: #fff;
+}
+
+.island-timer-preset:active {
+  transform: scale(0.94);
+}
+
+.island-timer-info {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: calc(8px * var(--k));
+}
+
+.island-timer-readout {
+  font-family: var(--font-display);
+  font-size: calc(17px * var(--k));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.island-timer-caption {
+  font-size: calc(11px * var(--k));
+  font-weight: 600;
+  opacity: 0.55;
+}
+
+.island-timer-btn {
+  width: calc(22px * var(--k));
+  height: calc(22px * var(--k));
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.island-timer-btn:hover {
+  background: var(--brand-color);
+  color: #fff;
+}
+
+.island-timer-btn:active {
+  transform: scale(0.92);
+}
+
+.island-timer-btn svg {
+  width: 56%;
+  height: 56%;
+}
+
+.island-timer-preset:focus-visible,
+.island-timer-btn:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: 2px;
+}
+
+/* ---------------- Closing the island ---------------- */
+
+/* Opening keeps its quick ease-out spring; closing gets a softer, longer
+   curve, so the pill settles back rather than snapping in at the start. The
+   controls vanish first, before the shrinking pill can squeeze past them, and
+   the calculator button slides back on the very same curve as the pill. */
+.dynamic-island {
+  transition:
+    width 0.55s cubic-bezier(0.45, 0, 0.15, 1),
+    height 0.55s cubic-bezier(0.45, 0, 0.15, 1),
+    border-radius 0.55s cubic-bezier(0.45, 0, 0.15, 1),
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+.dynamic-island-link-expanded .dynamic-island {
+  transition:
+    width 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.island-controls {
+  transition: opacity 0.12s ease, transform 0.25s ease, visibility 0s linear 0.25s;
+}
+
+.island-top {
+  transition: opacity 0.2s ease, padding-left 0.55s cubic-bezier(0.45, 0, 0.15, 1);
+}
+
+.top-bar-button-slot {
+  transition: translate 0.55s cubic-bezier(0.45, 0, 0.15, 1);
+}
+
+.dynamic-island-link-expanded ~ .top-bar-button-slot {
+  transition: translate 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------------- Custom timer dial ---------------- */
+
+@keyframes island-dial-in {
+  from { opacity: 0; transform: translateY(calc(6px * var(--k))); }
+  to { opacity: 1; transform: none; }
+}
+
+.island-dial {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4px * var(--k));
+  width: 100%;
+  animation: island-dial-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.island-dial-window {
+  position: relative;
+  height: calc(62px * var(--k));
+  overflow: hidden;
+  border-radius: calc(14px * var(--k));
+  cursor: grab;
+  touch-action: none;
+  outline: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent);
+}
+
+.island-dial-window:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--brand-color);
+}
+
+.island-dial-dragging {
+  cursor: grabbing;
+}
+
+/* The strip's origin is the window's center, so the picked minute sits under
+   the marker. Ticks hang from the bottom; every fifth is taller and labeled. */
+.island-dial-strip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+}
+
+.island-dial-tick {
+  position: absolute;
+  bottom: calc(14px * var(--k));
+  width: calc(1.6px * var(--k));
+  height: calc(17px * var(--k));
+  margin-left: calc(-0.8px * var(--k));
+  border-radius: 1px;
+  background: var(--brand-color);
+  opacity: calc(0.55 * var(--f, 1));
+  /* Ticks shrink toward the ruler's middle line as they turn away. */
+  transform-origin: 50% 0;
+}
+
+.island-dial-tick-major {
+  height: calc(28px * var(--k));
+  opacity: var(--f, 1);
+  transform-origin: 50% calc(11px * var(--k));
+}
+
+.island-dial-tick-major::before {
+  content: attr(data-label);
+  position: absolute;
+  bottom: calc(100% + 3px * var(--k));
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgb(0 0 0 / 0.55);
+  font-family: var(--font-display);
+  font-size: calc(11px * var(--k));
+  font-weight: 700;
+  font-style: normal;
+  line-height: 1;
+}
+
+.island-dial-marker {
+  position: absolute;
+  bottom: calc(3px * var(--k));
+  left: 50%;
+  width: 0;
+  height: 0;
+  margin-left: calc(-5px * var(--k));
+  border-left: calc(5px * var(--k)) solid transparent;
+  border-right: calc(5px * var(--k)) solid transparent;
+  border-bottom: calc(8px * var(--k)) solid var(--brand-color);
+  pointer-events: none;
+}
+
+.island-dial-row {
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--k));
+  height: calc(34px * var(--k));
+}
+
+.island-dial-back,
+.island-dial-start {
+  border: none;
+  cursor: pointer;
+  background: var(--brand-soft);
+  color: var(--brand-color);
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.island-dial-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: calc(26px * var(--k));
+  height: calc(26px * var(--k));
+  padding: 0;
+  border-radius: 50%;
+}
+
+.island-dial-back svg {
+  width: 60%;
+  height: 60%;
+}
+
+.island-dial-start {
+  height: calc(28px * var(--k));
+  padding: 0 calc(14px * var(--k));
+  border-radius: 999px;
+  font: inherit;
+  font-size: calc(13px * var(--k));
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.island-dial-back:hover,
+.island-dial-start:hover {
+  background: var(--brand-color);
+  color: #fff;
+}
+
+.island-dial-back:active,
+.island-dial-start:active {
+  transform: scale(0.95);
+}
+
+.island-dial-back:focus-visible,
+.island-dial-start:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: 2px;
+}
+
+.island-dial-readout {
+  flex: 1;
+  text-align: right;
+  color: var(--brand-color);
+  font-family: var(--font-display);
+  font-size: calc(24px * var(--k));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Breathing room above the dial, so it sits centered in the space below the
+   clock rather than hugging it. */
+.island-dial {
+  margin-top: calc(9px * var(--k));
+}
+
+/* The rows below the clock sit centered in the space under it; the dial
+   already carries its own top margin, so it takes only a little on top of it. */
+.island-controls {
+  margin-top: calc(11px * var(--k));
+}
+
+.island-dial {
+  margin-top: calc(2px * var(--k));
+}
+
+/* Up to and including the picked minute the ticks glow in the accent color;
+   past it they rest in a soft grey. The sides of the disk blur as they turn
+   away (--b grows with the angle). */
+.island-dial-tick {
+  background: rgb(110 110 128);
+  opacity: calc(0.4 * var(--f, 1));
+  filter: blur(calc(var(--b, 0) * 3px * var(--k)));
+}
+
+.island-dial-tick-major {
+  opacity: calc(0.65 * var(--f, 1));
+}
+
+.island-dial-tick.island-dial-tick-on {
+  background: var(--brand-color);
+  box-shadow: 0 0 calc(6px * var(--k)) rgb(var(--brand-rgb) / 0.6);
+  opacity: calc(0.85 * var(--f, 1));
+}
+
+.island-dial-tick-major.island-dial-tick-on {
+  opacity: var(--f, 1);
+}
+
+.island-dial-tick-major::before {
+  color: rgb(0 0 0 / 0.38);
+}
+
+.island-dial-tick-major.island-dial-tick-on::before {
+  color: var(--brand-color);
+}
+
+/* Buttons on a status message ("Time's up" -> +5 min, Dismiss). The message
+   itself ignores the pointer; only these take clicks, and only while shown. */
+.island-status-action {
+  height: calc(20px * var(--k));
+  margin-left: calc(2px * var(--k));
+  padding: 0 calc(9px * var(--k));
+  border: none;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.16);
+  color: inherit;
+  font: inherit;
+  font-size: calc(12px * var(--k));
+  font-weight: 700;
+  letter-spacing: 0;
+  cursor: pointer;
+  pointer-events: none;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.island-status-action:first-of-type {
+  background: var(--brand-color);
+  color: #fff;
+}
+
+.dynamic-island-link-status .island-status-action {
+  pointer-events: auto;
+}
+
+.island-status-action:hover {
+  background: #fff;
+  color: #000;
+}
+
+.island-status-action:active {
+  transform: scale(0.94);
+}
+
+.island-status-action:focus-visible {
+  outline: 2px solid var(--brand-a);
+  outline-offset: 2px;
+}
+
+/* The pill flips to white on hover, so the quieter button needs a dark tint. */
+.dynamic-island-link:hover .island-status-action:not(:first-of-type) {
+  background: rgb(0 0 0 / 0.1);
+}
+
+.dynamic-island-link:hover .island-status-action:not(:first-of-type):hover {
+  background: #000;
+  color: #fff;
+}
+
+/* The message sits above the (invisible) clock row, so its buttons — not the
+   home link underneath — receive the clicks. */
+.island-status {
+  z-index: 2;
 }

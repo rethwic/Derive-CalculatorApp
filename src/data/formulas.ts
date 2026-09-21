@@ -14,6 +14,15 @@ export const formulas: Formula[] = [
     ],
     related: ['alg-distance', 'geo-pythagorean'],
     keywords: ['roots', 'discriminant', 'polynomial'],
+    calc: {
+      vars: [
+        { key: 'a', symbol: 'a' },
+        { key: 'b', symbol: 'b' },
+        { key: 'c', symbol: 'c' },
+        { key: 'x', symbol: 'x' },
+      ],
+      residual: (v) => v.a * v.x * v.x + v.b * v.x + v.c,
+    },
   },
   {
     id: 'alg-slope',
@@ -26,6 +35,16 @@ export const formulas: Formula[] = [
       { symbol: '(x₁,y₁), (x₂,y₂)', meaning: 'Two points on the line' },
     ],
     related: ['alg-point-slope', 'alg-distance'],
+    calc: {
+      vars: [
+        { key: 'm', symbol: 'm' },
+        { key: 'x1', symbol: 'x₁' },
+        { key: 'y1', symbol: 'y₁' },
+        { key: 'x2', symbol: 'x₂' },
+        { key: 'y2', symbol: 'y₂' },
+      ],
+      residual: (v) => v.m * (v.x2 - v.x1) - (v.y2 - v.y1),
+    },
   },
   {
     id: 'alg-point-slope',
@@ -34,10 +53,22 @@ export const formulas: Formula[] = [
     title: 'Point-Slope Form',
     latex: 'y - y_1 = m(x - x_1)',
     variables: [
+      { symbol: 'y', meaning: 'y-coordinate of a general point on the line' },
+      { symbol: 'x', meaning: 'x-coordinate of a general point on the line' },
       { symbol: 'm', meaning: 'Slope of the line' },
       { symbol: '(x₁,y₁)', meaning: 'A known point on the line' },
     ],
     related: ['alg-slope'],
+    calc: {
+      vars: [
+        { key: 'y', symbol: 'y' },
+        { key: 'y1', symbol: 'y₁' },
+        { key: 'm', symbol: 'm' },
+        { key: 'x', symbol: 'x' },
+        { key: 'x1', symbol: 'x₁' },
+      ],
+      residual: (v) => (v.y - v.y1) - v.m * (v.x - v.x1),
+    },
   },
   {
     id: 'alg-exp-growth',
@@ -46,11 +77,21 @@ export const formulas: Formula[] = [
     title: 'Exponential Growth / Decay',
     latex: 'A(t) = A_0 e^{kt}',
     variables: [
+      { symbol: 'A', meaning: 'Amount at time t' },
       { symbol: 'A₀', meaning: 'Initial amount' },
       { symbol: 'k', meaning: 'Growth (k>0) or decay (k<0) rate' },
       { symbol: 't', meaning: 'Time' },
     ],
     related: ['chem-half-life', 'alg-compound-interest'],
+    calc: {
+      vars: [
+        { key: 'A', symbol: 'A' },
+        { key: 'A0', symbol: 'A₀' },
+        { key: 'k', symbol: 'k' },
+        { key: 't', symbol: 't' },
+      ],
+      residual: (v) => v.A - v.A0 * Math.exp(v.k * v.t),
+    },
   },
   {
     id: 'alg-compound-interest',
@@ -59,12 +100,23 @@ export const formulas: Formula[] = [
     title: 'Compound Interest',
     latex: 'A = P\\left(1 + \\frac{r}{n}\\right)^{nt}',
     variables: [
+      { symbol: 'A', meaning: 'Final amount after interest' },
       { symbol: 'P', meaning: 'Principal amount' },
       { symbol: 'r', meaning: 'Annual interest rate' },
       { symbol: 'n', meaning: 'Compounding periods per year' },
       { symbol: 't', meaning: 'Time in years' },
     ],
     related: ['alg-exp-growth'],
+    calc: {
+      vars: [
+        { key: 'A', symbol: 'A' },
+        { key: 'P', symbol: 'P' },
+        { key: 'r', symbol: 'r' },
+        { key: 'n', symbol: 'n' },
+        { key: 't', symbol: 't' },
+      ],
+      residual: (v) => v.A - v.P * Math.pow(1 + v.r / v.n, v.n * v.t),
+    },
   },
   {
     id: 'alg-log-change-base',
@@ -76,18 +128,14 @@ export const formulas: Formula[] = [
       { symbol: 'b', meaning: 'Original base' },
       { symbol: 'x', meaning: 'Argument of the logarithm' },
     ],
-  },
-  {
-    id: 'alg-binomial-theorem',
-    category: 'algebra',
-    label: '(a+b)ⁿ=ΣC(n,k)',
-    title: 'Binomial Theorem',
-    latex: '(a+b)^n = \\sum_{k=0}^{n} \\binom{n}{k} a^{n-k} b^{k}',
-    variables: [
-      { symbol: 'n', meaning: 'Power / exponent' },
-      { symbol: 'C(n,k)', meaning: 'Binomial coefficient, "n choose k"' },
-    ],
-    related: ['alg-combination'],
+    calc: {
+      vars: [
+        { key: 'y', symbol: 'logᵦx' },
+        { key: 'b', symbol: 'b' },
+        { key: 'x', symbol: 'x' },
+      ],
+      residual: (v) => v.y - Math.log(v.x) / Math.log(v.b),
+    },
   },
   {
     id: 'alg-distance',
@@ -96,9 +144,43 @@ export const formulas: Formula[] = [
     title: 'Distance Formula',
     latex: 'd = \\sqrt{(x_2-x_1)^2 + (y_2-y_1)^2}',
     variables: [
+      { symbol: 'd', meaning: 'Distance between the two points' },
       { symbol: '(x₁,y₁), (x₂,y₂)', meaning: 'Two points in the plane' },
     ],
     related: ['geo-pythagorean', 'alg-midpoint'],
+    calc: {
+      vars: [
+        { key: 'd', symbol: 'd' },
+        { key: 'x1', symbol: 'x₁' },
+        { key: 'y1', symbol: 'y₁' },
+        { key: 'x2', symbol: 'x₂' },
+        { key: 'y2', symbol: 'y₂' },
+      ],
+      residual: (v) => v.d - Math.sqrt((v.x2 - v.x1) ** 2 + (v.y2 - v.y1) ** 2),
+    },
+  },
+  {
+    id: 'alg-arithmetic-sequence',
+    category: 'algebra',
+    label: 'aₙ=a₁+(n-1)d',
+    title: 'Arithmetic Sequence (nth Term)',
+    latex: 'a_n = a_1 + (n-1)d',
+    variables: [
+      { symbol: 'aₙ', meaning: 'nth term of the sequence' },
+      { symbol: 'a₁', meaning: 'First term' },
+      { symbol: 'n', meaning: 'Term number' },
+      { symbol: 'd', meaning: 'Common difference' },
+    ],
+    related: ['alg-arithmetic-series', 'alg-geometric-sequence'],
+    calc: {
+      vars: [
+        { key: 'an', symbol: 'aₙ' },
+        { key: 'a1', symbol: 'a₁' },
+        { key: 'n', symbol: 'n' },
+        { key: 'd', symbol: 'd' },
+      ],
+      residual: (v) => v.an - (v.a1 + (v.n - 1) * v.d),
+    },
   },
   {
     id: 'alg-arithmetic-series',
@@ -107,10 +189,43 @@ export const formulas: Formula[] = [
     title: 'Arithmetic Series Sum',
     latex: 'S_n = \\frac{n}{2}(a_1 + a_n)',
     variables: [
+      { symbol: 'Sₙ', meaning: 'Sum of the first n terms' },
       { symbol: 'n', meaning: 'Number of terms' },
       { symbol: 'a₁, aₙ', meaning: 'First and last term' },
     ],
-    related: ['alg-geometric-series'],
+    related: ['alg-geometric-series', 'alg-arithmetic-sequence'],
+    calc: {
+      vars: [
+        { key: 'Sn', symbol: 'Sₙ' },
+        { key: 'n', symbol: 'n' },
+        { key: 'a1', symbol: 'a₁' },
+        { key: 'an', symbol: 'aₙ' },
+      ],
+      residual: (v) => v.Sn - (v.n / 2) * (v.a1 + v.an),
+    },
+  },
+  {
+    id: 'alg-geometric-sequence',
+    category: 'algebra',
+    label: 'aₙ=a₁rⁿ⁻¹',
+    title: 'Geometric Sequence (nth Term)',
+    latex: 'a_n = a_1 r^{n-1}',
+    variables: [
+      { symbol: 'aₙ', meaning: 'nth term of the sequence' },
+      { symbol: 'a₁', meaning: 'First term' },
+      { symbol: 'r', meaning: 'Common ratio' },
+      { symbol: 'n', meaning: 'Term number' },
+    ],
+    related: ['alg-geometric-series', 'alg-arithmetic-sequence'],
+    calc: {
+      vars: [
+        { key: 'an', symbol: 'aₙ' },
+        { key: 'a1', symbol: 'a₁' },
+        { key: 'r', symbol: 'r' },
+        { key: 'n', symbol: 'n' },
+      ],
+      residual: (v) => v.an - v.a1 * Math.pow(v.r, v.n - 1),
+    },
   },
   {
     id: 'alg-geometric-series',
@@ -119,23 +234,21 @@ export const formulas: Formula[] = [
     title: 'Geometric Series Sum',
     latex: 'S_n = \\frac{a_1(1-r^n)}{1-r}',
     variables: [
+      { symbol: 'Sₙ', meaning: 'Sum of the first n terms' },
       { symbol: 'a₁', meaning: 'First term' },
       { symbol: 'r', meaning: 'Common ratio' },
       { symbol: 'n', meaning: 'Number of terms' },
     ],
-    related: ['alg-arithmetic-series'],
-  },
-  {
-    id: 'alg-combination',
-    category: 'algebra',
-    label: 'C(n,k)=n!/(k!(n-k)!)',
-    title: 'Combinations',
-    latex: '\\binom{n}{k} = \\frac{n!}{k!(n-k)!}',
-    variables: [
-      { symbol: 'n', meaning: 'Total number of items' },
-      { symbol: 'k', meaning: 'Items chosen' },
-    ],
-    related: ['alg-binomial-theorem', 'calc-binomial-prob'],
+    related: ['alg-arithmetic-series', 'alg-geometric-sequence'],
+    calc: {
+      vars: [
+        { key: 'Sn', symbol: 'Sₙ' },
+        { key: 'a1', symbol: 'a₁' },
+        { key: 'r', symbol: 'r' },
+        { key: 'n', symbol: 'n' },
+      ],
+      residual: (v) => v.Sn - (v.a1 * (1 - Math.pow(v.r, v.n))) / (1 - v.r),
+    },
   },
   {
     id: 'alg-midpoint',
@@ -144,12 +257,215 @@ export const formulas: Formula[] = [
     title: 'Midpoint Formula',
     latex: 'M = \\left(\\frac{x_1+x_2}{2}, \\frac{y_1+y_2}{2}\\right)',
     variables: [
+      { symbol: 'M', meaning: 'Midpoint of the segment' },
       { symbol: '(x₁,y₁), (x₂,y₂)', meaning: 'Endpoints of a segment' },
     ],
     related: ['alg-distance'],
   },
 
   // ---------- GEOMETRY & TRIGONOMETRY ----------
+  {
+    id: 'geo-area-formulas',
+    category: 'geometry',
+    label: 'Area Formulas',
+    title: 'Area Formulas',
+    latex: 'A = lw',
+    variables: [
+      { symbol: 'A', meaning: 'Area' },
+      { symbol: 'l, w', meaning: 'Length and width (rectangle)' },
+      { symbol: 'r', meaning: 'Radius (circle)' },
+      { symbol: 'b, h', meaning: 'Base and height (triangle)' },
+      { symbol: 'b₁, b₂', meaning: 'Parallel sides (trapezoid)' },
+    ],
+    keywords: ['rectangle', 'circle', 'triangle', 'trapezoid', 'square', 'area'],
+    related: ['geo-circumference'],
+    variants: [
+      {
+        label: 'Rectangle',
+        latex: 'A = lw',
+        variables: [
+          { symbol: 'A', meaning: 'Area' },
+          { symbol: 'l', meaning: 'Length' },
+          { symbol: 'w', meaning: 'Width' },
+        ],
+        calc: {
+          vars: [
+            { key: 'A', symbol: 'A' },
+            { key: 'l', symbol: 'l' },
+            { key: 'w', symbol: 'w' },
+          ],
+          residual: (v) => v.A - v.l * v.w,
+        },
+      },
+      {
+        label: 'Circle',
+        latex: 'A = \\pi r^2',
+        variables: [
+          { symbol: 'A', meaning: 'Area' },
+          { symbol: 'r', meaning: 'Radius' },
+        ],
+        calc: {
+          vars: [
+            { key: 'A', symbol: 'A' },
+            { key: 'r', symbol: 'r' },
+          ],
+          residual: (v) => v.A - Math.PI * v.r * v.r,
+        },
+      },
+      {
+        label: 'Triangle',
+        latex: 'A = \\frac{1}{2}bh',
+        variables: [
+          { symbol: 'A', meaning: 'Area' },
+          { symbol: 'b', meaning: 'Base length' },
+          { symbol: 'h', meaning: 'Height' },
+        ],
+        calc: {
+          vars: [
+            { key: 'A', symbol: 'A' },
+            { key: 'b', symbol: 'b' },
+            { key: 'h', symbol: 'h' },
+          ],
+          residual: (v) => v.A - 0.5 * v.b * v.h,
+        },
+      },
+      {
+        label: 'Trapezoid',
+        latex: 'A = \\frac{1}{2}(b_1+b_2)h',
+        variables: [
+          { symbol: 'A', meaning: 'Area' },
+          { symbol: 'b₁, b₂', meaning: 'Parallel sides (bases)' },
+          { symbol: 'h', meaning: 'Height' },
+        ],
+        calc: {
+          vars: [
+            { key: 'A', symbol: 'A' },
+            { key: 'b1', symbol: 'b₁' },
+            { key: 'b2', symbol: 'b₂' },
+            { key: 'h', symbol: 'h' },
+          ],
+          residual: (v) => v.A - 0.5 * (v.b1 + v.b2) * v.h,
+        },
+      },
+    ],
+  },
+  {
+    id: 'geo-volume-formulas',
+    category: 'geometry',
+    label: 'Volume Formulas',
+    title: 'Volume Formulas',
+    latex: 'V = lwh',
+    variables: [
+      { symbol: 'V', meaning: 'Volume' },
+      { symbol: 'l, w, h', meaning: 'Length, width, height (prism)' },
+      { symbol: 's', meaning: 'Side length (cube)' },
+      { symbol: 'r', meaning: 'Radius (sphere, cylinder, cone)' },
+    ],
+    keywords: ['sphere', 'rectangular prism', 'box', 'cube', 'cone', 'cylinder', 'pyramid', 'volume'],
+    variants: [
+      {
+        label: 'Rectangular Prism',
+        latex: 'V = lwh',
+        variables: [
+          { symbol: 'V', meaning: 'Volume' },
+          { symbol: 'l', meaning: 'Length' },
+          { symbol: 'w', meaning: 'Width' },
+          { symbol: 'h', meaning: 'Height' },
+        ],
+        calc: {
+          vars: [
+            { key: 'V', symbol: 'V' },
+            { key: 'l', symbol: 'l' },
+            { key: 'w', symbol: 'w' },
+            { key: 'h', symbol: 'h' },
+          ],
+          residual: (v) => v.V - v.l * v.w * v.h,
+        },
+      },
+      {
+        label: 'Cube',
+        latex: 'V = s^3',
+        variables: [
+          { symbol: 'V', meaning: 'Volume' },
+          { symbol: 's', meaning: 'Side length' },
+        ],
+        calc: {
+          vars: [
+            { key: 'V', symbol: 'V' },
+            { key: 's', symbol: 's' },
+          ],
+          residual: (v) => v.V - v.s ** 3,
+        },
+      },
+      {
+        label: 'Sphere',
+        latex: 'V = \\frac{4}{3}\\pi r^3',
+        variables: [
+          { symbol: 'V', meaning: 'Volume' },
+          { symbol: 'r', meaning: 'Radius' },
+        ],
+        calc: {
+          vars: [
+            { key: 'V', symbol: 'V' },
+            { key: 'r', symbol: 'r' },
+          ],
+          residual: (v) => v.V - (4 / 3) * Math.PI * v.r ** 3,
+        },
+      },
+      {
+        label: 'Cylinder',
+        latex: 'V = \\pi r^2 h',
+        variables: [
+          { symbol: 'V', meaning: 'Volume' },
+          { symbol: 'r', meaning: 'Radius of base' },
+          { symbol: 'h', meaning: 'Height' },
+        ],
+        calc: {
+          vars: [
+            { key: 'V', symbol: 'V' },
+            { key: 'r', symbol: 'r' },
+            { key: 'h', symbol: 'h' },
+          ],
+          residual: (v) => v.V - Math.PI * v.r * v.r * v.h,
+        },
+      },
+      {
+        label: 'Cone',
+        latex: 'V = \\frac{1}{3}\\pi r^2 h',
+        variables: [
+          { symbol: 'V', meaning: 'Volume' },
+          { symbol: 'r', meaning: 'Radius of base' },
+          { symbol: 'h', meaning: 'Height' },
+        ],
+        calc: {
+          vars: [
+            { key: 'V', symbol: 'V' },
+            { key: 'r', symbol: 'r' },
+            { key: 'h', symbol: 'h' },
+          ],
+          residual: (v) => v.V - (1 / 3) * Math.PI * v.r * v.r * v.h,
+        },
+      },
+      {
+        label: 'Pyramid',
+        latex: 'V = \\frac{1}{3}lwh',
+        variables: [
+          { symbol: 'V', meaning: 'Volume' },
+          { symbol: 'l, w', meaning: 'Base length and width' },
+          { symbol: 'h', meaning: 'Height' },
+        ],
+        calc: {
+          vars: [
+            { key: 'V', symbol: 'V' },
+            { key: 'l', symbol: 'l' },
+            { key: 'w', symbol: 'w' },
+            { key: 'h', symbol: 'h' },
+          ],
+          residual: (v) => v.V - (1 / 3) * v.l * v.w * v.h,
+        },
+      },
+    ],
+  },
   {
     id: 'geo-pythagorean',
     category: 'geometry',
@@ -161,6 +477,14 @@ export const formulas: Formula[] = [
       { symbol: 'c', meaning: 'Hypotenuse' },
     ],
     related: ['alg-distance', 'geo-law-cosines'],
+    calc: {
+      vars: [
+        { key: 'a', symbol: 'a' },
+        { key: 'b', symbol: 'b' },
+        { key: 'c', symbol: 'c' },
+      ],
+      residual: (v) => v.a * v.a + v.b * v.b - v.c * v.c,
+    },
   },
   {
     id: 'geo-law-cosines',
@@ -173,6 +497,15 @@ export const formulas: Formula[] = [
       { symbol: 'C', meaning: 'Angle opposite side c' },
     ],
     related: ['geo-pythagorean', 'geo-law-sines'],
+    calc: {
+      vars: [
+        { key: 'a', symbol: 'a' },
+        { key: 'b', symbol: 'b' },
+        { key: 'c', symbol: 'c' },
+        { key: 'C', symbol: 'C (deg)' },
+      ],
+      residual: (v) => v.c * v.c - (v.a * v.a + v.b * v.b - 2 * v.a * v.b * Math.cos((v.C * Math.PI) / 180)),
+    },
   },
   {
     id: 'geo-law-sines',
@@ -185,15 +518,15 @@ export const formulas: Formula[] = [
       { symbol: 'A, B, C', meaning: 'Angles opposite each side' },
     ],
     related: ['geo-law-cosines'],
-  },
-  {
-    id: 'geo-circle-area',
-    category: 'geometry',
-    label: 'A=πr²',
-    title: 'Area of a Circle',
-    latex: 'A = \\pi r^2',
-    variables: [{ symbol: 'r', meaning: 'Radius' }],
-    related: ['geo-circumference'],
+    calc: {
+      vars: [
+        { key: 'a', symbol: 'a' },
+        { key: 'A', symbol: 'A (deg)' },
+        { key: 'b', symbol: 'b' },
+        { key: 'B', symbol: 'B (deg)' },
+      ],
+      residual: (v) => v.a * Math.sin((v.B * Math.PI) / 180) - v.b * Math.sin((v.A * Math.PI) / 180),
+    },
   },
   {
     id: 'geo-circumference',
@@ -201,51 +534,18 @@ export const formulas: Formula[] = [
     label: 'C=2πr',
     title: 'Circumference of a Circle',
     latex: 'C = 2\\pi r',
-    variables: [{ symbol: 'r', meaning: 'Radius' }],
-    related: ['geo-circle-area'],
-  },
-  {
-    id: 'geo-sphere-volume',
-    category: 'geometry',
-    label: 'V=4/3πr³',
-    title: 'Volume of a Sphere',
-    latex: 'V = \\frac{4}{3}\\pi r^3',
-    variables: [{ symbol: 'r', meaning: 'Radius' }],
-  },
-  {
-    id: 'geo-cylinder-volume',
-    category: 'geometry',
-    label: 'V=πr²h',
-    title: 'Volume of a Cylinder',
-    latex: 'V = \\pi r^2 h',
     variables: [
-      { symbol: 'r', meaning: 'Radius of base' },
-      { symbol: 'h', meaning: 'Height' },
+      { symbol: 'C', meaning: 'Circumference' },
+      { symbol: 'r', meaning: 'Radius' },
     ],
-    related: ['geo-cone-volume'],
-  },
-  {
-    id: 'geo-cone-volume',
-    category: 'geometry',
-    label: 'V=1/3πr²h',
-    title: 'Volume of a Cone',
-    latex: 'V = \\frac{1}{3}\\pi r^2 h',
-    variables: [
-      { symbol: 'r', meaning: 'Radius of base' },
-      { symbol: 'h', meaning: 'Height' },
-    ],
-    related: ['geo-cylinder-volume'],
-  },
-  {
-    id: 'geo-triangle-area',
-    category: 'geometry',
-    label: 'A=½bh',
-    title: 'Area of a Triangle',
-    latex: 'A = \\frac{1}{2}bh',
-    variables: [
-      { symbol: 'b', meaning: 'Base length' },
-      { symbol: 'h', meaning: 'Height' },
-    ],
+    related: ['geo-area-formulas'],
+    calc: {
+      vars: [
+        { key: 'C', symbol: 'C' },
+        { key: 'r', symbol: 'r' },
+      ],
+      residual: (v) => v.C - 2 * Math.PI * v.r,
+    },
   },
   {
     id: 'geo-interior-angles',
@@ -253,7 +553,17 @@ export const formulas: Formula[] = [
     label: 'S=(n-2)·180°',
     title: 'Sum of Interior Angles',
     latex: 'S = (n-2) \\times 180^\\circ',
-    variables: [{ symbol: 'n', meaning: 'Number of polygon sides' }],
+    variables: [
+      { symbol: 'S', meaning: 'Sum of interior angles' },
+      { symbol: 'n', meaning: 'Number of polygon sides' },
+    ],
+    calc: {
+      vars: [
+        { key: 'S', symbol: 'S' },
+        { key: 'n', symbol: 'n' },
+      ],
+      residual: (v) => v.S - (v.n - 2) * 180,
+    },
   },
   {
     id: 'geo-pythagorean-identity',
@@ -281,7 +591,10 @@ export const formulas: Formula[] = [
     label: 'd/dx xⁿ=nxⁿ⁻¹',
     title: 'Power Rule (Derivative)',
     latex: '\\frac{d}{dx}x^n = nx^{n-1}',
-    variables: [{ symbol: 'n', meaning: 'Constant exponent' }],
+    variables: [
+      { symbol: 'n', meaning: 'Constant exponent' },
+      { symbol: 'x', meaning: 'Independent variable' },
+    ],
     related: ['calc-integral-power'],
   },
   {
@@ -301,7 +614,11 @@ export const formulas: Formula[] = [
     label: 'dy/dx=dy/du·du/dx',
     title: 'Chain Rule',
     latex: '\\frac{dy}{dx} = \\frac{dy}{du}\\cdot\\frac{du}{dx}',
-    variables: [{ symbol: 'u', meaning: 'Intermediate function' }],
+    variables: [
+      { symbol: 'y', meaning: 'Outer function, y = f(u)' },
+      { symbol: 'u', meaning: 'Intermediate function' },
+      { symbol: 'x', meaning: 'Independent variable' },
+    ],
     related: ['calc-product-rule'],
   },
   {
@@ -311,7 +628,9 @@ export const formulas: Formula[] = [
     title: 'Fundamental Theorem of Calculus',
     latex: '\\int_a^b f\'(x)\\,dx = f(b) - f(a)',
     variables: [
+      { symbol: 'f', meaning: 'Antiderivative function' },
       { symbol: 'a, b', meaning: 'Bounds of integration' },
+      { symbol: 'x', meaning: 'Independent variable' },
     ],
     related: ['calc-integral-power'],
   },
@@ -321,7 +640,10 @@ export const formulas: Formula[] = [
     label: '∫xⁿdx=xⁿ⁺¹/(n+1)',
     title: 'Power Rule (Integral)',
     latex: '\\int x^n\\,dx = \\frac{x^{n+1}}{n+1} + C',
-    variables: [{ symbol: 'n', meaning: 'Constant exponent, n ≠ -1' }],
+    variables: [
+      { symbol: 'n', meaning: 'Constant exponent, n ≠ -1' },
+      { symbol: 'x', meaning: 'Independent variable' },
+    ],
     related: ['calc-power-rule', 'calc-ftc'],
   },
   {
@@ -330,7 +652,10 @@ export const formulas: Formula[] = [
     label: "f'(x)=lim(Δf/Δx)",
     title: 'Limit Definition of the Derivative',
     latex: "f'(x) = \\lim_{h \\to 0} \\frac{f(x+h)-f(x)}{h}",
-    variables: [{ symbol: 'h', meaning: 'Infinitesimal step' }],
+    variables: [
+      { symbol: 'x', meaning: 'Point at which the derivative is evaluated' },
+      { symbol: 'h', meaning: 'Infinitesimal step' },
+    ],
     related: ['calc-power-rule'],
   },
   {
@@ -340,6 +665,7 @@ export const formulas: Formula[] = [
     title: 'Mean (Average)',
     latex: '\\bar{x} = \\frac{\\sum x_i}{n}',
     variables: [
+      { symbol: 'x̄', meaning: 'Mean (average) of the data' },
       { symbol: 'xᵢ', meaning: 'Each data value' },
       { symbol: 'n', meaning: 'Number of values' },
     ],
@@ -352,6 +678,7 @@ export const formulas: Formula[] = [
     title: 'Standard Deviation',
     latex: '\\sigma = \\sqrt{\\frac{\\sum (x_i - \\bar{x})^2}{n}}',
     variables: [
+      { symbol: 'σ', meaning: 'Standard deviation' },
       { symbol: 'xᵢ', meaning: 'Each data value' },
       { symbol: 'x̄', meaning: 'Mean of the data' },
     ],
@@ -364,23 +691,22 @@ export const formulas: Formula[] = [
     title: 'Normal Distribution (PDF)',
     latex: 'f(x) = \\frac{1}{\\sigma\\sqrt{2\\pi}} e^{-\\frac{(x-\\mu)^2}{2\\sigma^2}}',
     variables: [
+      { symbol: 'f(x)', meaning: 'Value of the probability density at x' },
+      { symbol: 'x', meaning: 'Point at which the density is evaluated' },
       { symbol: 'μ', meaning: 'Mean' },
       { symbol: 'σ', meaning: 'Standard deviation' },
     ],
     related: ['calc-std-dev'],
-  },
-  {
-    id: 'calc-binomial-prob',
-    category: 'calculus',
-    label: 'P(k)=C(n,k)pᵏ(1-p)ⁿ⁻ᵏ',
-    title: 'Binomial Probability',
-    latex: 'P(k) = \\binom{n}{k} p^k (1-p)^{n-k}',
-    variables: [
-      { symbol: 'n', meaning: 'Number of trials' },
-      { symbol: 'k', meaning: 'Number of successes' },
-      { symbol: 'p', meaning: 'Probability of success' },
-    ],
-    related: ['alg-combination'],
+    calc: {
+      vars: [
+        { key: 'f', symbol: 'f(x)' },
+        { key: 'x', symbol: 'x' },
+        { key: 'mu', symbol: 'μ' },
+        { key: 'sigma', symbol: 'σ' },
+      ],
+      residual: (v) =>
+        v.f - (1 / (v.sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-((v.x - v.mu) ** 2) / (2 * v.sigma * v.sigma)),
+    },
   },
   {
     id: 'calc-bayes',
@@ -390,15 +716,19 @@ export const formulas: Formula[] = [
     latex: 'P(A|B) = \\frac{P(B|A)P(A)}{P(B)}',
     variables: [
       { symbol: 'P(A|B)', meaning: 'Probability of A given B' },
+      { symbol: 'P(B|A)', meaning: 'Probability of B given A' },
+      { symbol: 'P(A)', meaning: 'Prior probability of A' },
+      { symbol: 'P(B)', meaning: 'Prior probability of B' },
     ],
-  },
-  {
-    id: 'calc-taylor-series',
-    category: 'calculus',
-    label: 'f(x)=Σf⁽ⁿ⁾(a)/n!(x-a)ⁿ',
-    title: 'Taylor Series',
-    latex: 'f(x) = \\sum_{n=0}^{\\infty} \\frac{f^{(n)}(a)}{n!}(x-a)^n',
-    variables: [{ symbol: 'a', meaning: 'Center of expansion' }],
+    calc: {
+      vars: [
+        { key: 'pAB', symbol: 'P(A|B)' },
+        { key: 'pBA', symbol: 'P(B|A)' },
+        { key: 'pA', symbol: 'P(A)' },
+        { key: 'pB', symbol: 'P(B)' },
+      ],
+      residual: (v) => v.pAB - (v.pBA * v.pA) / v.pB,
+    },
   },
 
   // ---------- PHYSICS ----------
@@ -413,7 +743,59 @@ export const formulas: Formula[] = [
       { symbol: 'm', meaning: 'Mass' },
       { symbol: 'a', meaning: 'Acceleration' },
     ],
-    related: ['phys-momentum', 'phys-work'],
+    related: ['phys-momentum', 'phys-work', 'phys-friction', 'phys-centripetal-force'],
+    calc: {
+      vars: [
+        { key: 'F', symbol: 'F' },
+        { key: 'm', symbol: 'm' },
+        { key: 'a', symbol: 'a' },
+      ],
+      residual: (v) => v.F - v.m * v.a,
+    },
+  },
+  {
+    id: 'phys-friction',
+    category: 'physics',
+    label: 'f=μN',
+    title: 'Friction Force',
+    latex: 'f = \\mu N',
+    variables: [
+      { symbol: 'f', meaning: 'Friction force' },
+      { symbol: 'μ', meaning: 'Coefficient of friction' },
+      { symbol: 'N', meaning: 'Normal force' },
+    ],
+    related: ['phys-newton-2nd'],
+    calc: {
+      vars: [
+        { key: 'f', symbol: 'f' },
+        { key: 'mu', symbol: 'μ' },
+        { key: 'N', symbol: 'N' },
+      ],
+      residual: (v) => v.f - v.mu * v.N,
+    },
+  },
+  {
+    id: 'phys-centripetal-force',
+    category: 'physics',
+    label: 'Fc=mv²/r',
+    title: 'Centripetal Force',
+    latex: 'F_c = \\frac{mv^2}{r}',
+    variables: [
+      { symbol: 'Fc', meaning: 'Centripetal force' },
+      { symbol: 'm', meaning: 'Mass' },
+      { symbol: 'v', meaning: 'Speed' },
+      { symbol: 'r', meaning: 'Radius of the circular path' },
+    ],
+    related: ['phys-newton-2nd', 'phys-angular-kinematics'],
+    calc: {
+      vars: [
+        { key: 'Fc', symbol: 'Fc' },
+        { key: 'm', symbol: 'm' },
+        { key: 'v', symbol: 'v' },
+        { key: 'r', symbol: 'r' },
+      ],
+      residual: (v) => v.Fc - (v.m * v.v * v.v) / v.r,
+    },
   },
   {
     id: 'phys-kinetic-energy',
@@ -422,10 +804,19 @@ export const formulas: Formula[] = [
     title: 'Kinetic Energy',
     latex: 'KE = \\frac{1}{2}mv^2',
     variables: [
+      { symbol: 'KE', meaning: 'Kinetic energy' },
       { symbol: 'm', meaning: 'Mass' },
       { symbol: 'v', meaning: 'Velocity' },
     ],
     related: ['phys-work', 'phys-mass-energy'],
+    calc: {
+      vars: [
+        { key: 'KE', symbol: 'KE' },
+        { key: 'm', symbol: 'm' },
+        { key: 'v', symbol: 'v' },
+      ],
+      residual: (v) => v.KE - 0.5 * v.m * v.v * v.v,
+    },
   },
   {
     id: 'phys-potential-energy',
@@ -434,11 +825,21 @@ export const formulas: Formula[] = [
     title: 'Gravitational Potential Energy',
     latex: 'PE = mgh',
     variables: [
+      { symbol: 'PE', meaning: 'Gravitational potential energy' },
       { symbol: 'm', meaning: 'Mass' },
       { symbol: 'g', meaning: 'Gravitational acceleration' },
       { symbol: 'h', meaning: 'Height' },
     ],
     related: ['phys-kinetic-energy'],
+    calc: {
+      vars: [
+        { key: 'PE', symbol: 'PE' },
+        { key: 'm', symbol: 'm' },
+        { key: 'g', symbol: 'g', defaultValue: 9.8 },
+        { key: 'h', symbol: 'h' },
+      ],
+      residual: (v) => v.PE - v.m * v.g * v.h,
+    },
   },
   {
     id: 'phys-gravitation',
@@ -447,11 +848,22 @@ export const formulas: Formula[] = [
     title: 'Universal Gravitation',
     latex: 'F = G\\frac{m_1 m_2}{r^2}',
     variables: [
+      { symbol: 'F', meaning: 'Gravitational force' },
       { symbol: 'G', meaning: 'Gravitational constant' },
       { symbol: 'm₁, m₂', meaning: 'Masses of the two bodies' },
       { symbol: 'r', meaning: 'Distance between centers' },
     ],
     related: ['phys-coulomb'],
+    calc: {
+      vars: [
+        { key: 'F', symbol: 'F' },
+        { key: 'G', symbol: 'G', defaultValue: 6.674e-11 },
+        { key: 'm1', symbol: 'm₁' },
+        { key: 'm2', symbol: 'm₂' },
+        { key: 'r', symbol: 'r' },
+      ],
+      residual: (v) => v.F - (v.G * v.m1 * v.m2) / (v.r * v.r),
+    },
   },
   {
     id: 'phys-ohms-law',
@@ -465,6 +877,14 @@ export const formulas: Formula[] = [
       { symbol: 'R', meaning: 'Resistance' },
     ],
     related: ['phys-power'],
+    calc: {
+      vars: [
+        { key: 'V', symbol: 'V' },
+        { key: 'I', symbol: 'I' },
+        { key: 'R', symbol: 'R' },
+      ],
+      residual: (v) => v.V - v.I * v.R,
+    },
   },
   {
     id: 'phys-coulomb',
@@ -473,11 +893,22 @@ export const formulas: Formula[] = [
     title: "Coulomb's Law",
     latex: 'F = k\\frac{q_1 q_2}{r^2}',
     variables: [
+      { symbol: 'F', meaning: 'Electrostatic force' },
       { symbol: 'k', meaning: "Coulomb's constant" },
       { symbol: 'q₁, q₂', meaning: 'Electric charges' },
       { symbol: 'r', meaning: 'Distance between charges' },
     ],
     related: ['phys-gravitation'],
+    calc: {
+      vars: [
+        { key: 'F', symbol: 'F' },
+        { key: 'k', symbol: 'k', defaultValue: 8.988e9 },
+        { key: 'q1', symbol: 'q₁' },
+        { key: 'q2', symbol: 'q₂' },
+        { key: 'r', symbol: 'r' },
+      ],
+      residual: (v) => v.F - (v.k * v.q1 * v.q2) / (v.r * v.r),
+    },
   },
   {
     id: 'phys-mass-energy',
@@ -486,10 +917,19 @@ export const formulas: Formula[] = [
     title: 'Mass-Energy Equivalence',
     latex: 'E = mc^2',
     variables: [
+      { symbol: 'E', meaning: 'Energy' },
       { symbol: 'm', meaning: 'Mass' },
       { symbol: 'c', meaning: 'Speed of light' },
     ],
     related: ['phys-kinetic-energy'],
+    calc: {
+      vars: [
+        { key: 'E', symbol: 'E' },
+        { key: 'm', symbol: 'm' },
+        { key: 'c', symbol: 'c', defaultValue: 2.998e8 },
+      ],
+      residual: (v) => v.E - v.m * v.c * v.c,
+    },
   },
   {
     id: 'phys-kinematics',
@@ -498,10 +938,71 @@ export const formulas: Formula[] = [
     title: 'Kinematic Equation (Position)',
     latex: 'x = x_0 + v_0 t + \\frac{1}{2}at^2',
     variables: [
-      { symbol: 'x₀, v₀', meaning: 'Initial position and velocity' },
+      { symbol: 'x', meaning: 'Position at time t' },
+      { symbol: 'x₀', meaning: 'Initial position' },
+      { symbol: 'v₀', meaning: 'Initial velocity' },
+      { symbol: 't', meaning: 'Time' },
       { symbol: 'a', meaning: 'Acceleration' },
     ],
-    related: ['phys-newton-2nd'],
+    related: ['phys-newton-2nd', 'phys-angular-kinematics'],
+    calc: {
+      vars: [
+        { key: 'x', symbol: 'x' },
+        { key: 'x0', symbol: 'x₀' },
+        { key: 'v0', symbol: 'v₀' },
+        { key: 't', symbol: 't' },
+        { key: 'a', symbol: 'a' },
+      ],
+      residual: (v) => v.x - (v.x0 + v.v0 * v.t + 0.5 * v.a * v.t * v.t),
+    },
+  },
+  {
+    id: 'phys-angular-kinematics',
+    category: 'physics',
+    label: 'θ=θ₀+ω₀t+½αt²',
+    title: 'Angular Kinematics (Position)',
+    latex: '\\theta = \\theta_0 + \\omega_0 t + \\frac{1}{2}\\alpha t^2',
+    variables: [
+      { symbol: 'θ', meaning: 'Angular position at time t' },
+      { symbol: 'θ₀', meaning: 'Initial angular position' },
+      { symbol: 'ω₀', meaning: 'Initial angular velocity' },
+      { symbol: 't', meaning: 'Time' },
+      { symbol: 'α', meaning: 'Angular acceleration' },
+    ],
+    related: ['phys-kinematics', 'phys-torque'],
+    calc: {
+      vars: [
+        { key: 'theta', symbol: 'θ' },
+        { key: 'theta0', symbol: 'θ₀' },
+        { key: 'omega0', symbol: 'ω₀' },
+        { key: 't', symbol: 't' },
+        { key: 'alpha', symbol: 'α' },
+      ],
+      residual: (v) => v.theta - (v.theta0 + v.omega0 * v.t + 0.5 * v.alpha * v.t * v.t),
+    },
+  },
+  {
+    id: 'phys-torque',
+    category: 'physics',
+    label: 'τ=rF sinθ',
+    title: 'Torque',
+    latex: '\\tau = rF\\sin(\\theta)',
+    variables: [
+      { symbol: 'τ', meaning: 'Torque' },
+      { symbol: 'r', meaning: 'Lever arm (distance from pivot)' },
+      { symbol: 'F', meaning: 'Applied force' },
+      { symbol: 'θ', meaning: 'Angle between r and F' },
+    ],
+    related: ['phys-angular-kinematics', 'phys-work'],
+    calc: {
+      vars: [
+        { key: 'tau', symbol: 'τ' },
+        { key: 'r', symbol: 'r' },
+        { key: 'F', symbol: 'F' },
+        { key: 'theta', symbol: 'θ (deg)' },
+      ],
+      residual: (v) => v.tau - v.r * v.F * Math.sin((v.theta * Math.PI) / 180),
+    },
   },
   {
     id: 'phys-momentum',
@@ -510,10 +1011,40 @@ export const formulas: Formula[] = [
     title: 'Momentum',
     latex: 'p = mv',
     variables: [
+      { symbol: 'p', meaning: 'Momentum' },
       { symbol: 'm', meaning: 'Mass' },
       { symbol: 'v', meaning: 'Velocity' },
     ],
-    related: ['phys-newton-2nd'],
+    related: ['phys-newton-2nd', 'phys-impulse'],
+    calc: {
+      vars: [
+        { key: 'p', symbol: 'p' },
+        { key: 'm', symbol: 'm' },
+        { key: 'v', symbol: 'v' },
+      ],
+      residual: (v) => v.p - v.m * v.v,
+    },
+  },
+  {
+    id: 'phys-impulse',
+    category: 'physics',
+    label: 'J=FΔt=Δp',
+    title: 'Impulse',
+    latex: 'J = F\\Delta t = \\Delta p',
+    variables: [
+      { symbol: 'J', meaning: 'Impulse (also equals Δp, the change in momentum)' },
+      { symbol: 'F', meaning: 'Net force' },
+      { symbol: 'Δt', meaning: 'Time interval' },
+    ],
+    related: ['phys-momentum', 'phys-newton-2nd'],
+    calc: {
+      vars: [
+        { key: 'J', symbol: 'J' },
+        { key: 'F', symbol: 'F' },
+        { key: 'dt', symbol: 'Δt' },
+      ],
+      residual: (v) => v.J - v.F * v.dt,
+    },
   },
   {
     id: 'phys-work',
@@ -522,11 +1053,21 @@ export const formulas: Formula[] = [
     title: 'Work',
     latex: 'W = Fd\\cos(\\theta)',
     variables: [
+      { symbol: 'W', meaning: 'Work done' },
       { symbol: 'F', meaning: 'Applied force' },
       { symbol: 'd', meaning: 'Displacement' },
       { symbol: 'θ', meaning: 'Angle between F and d' },
     ],
     related: ['phys-kinetic-energy', 'phys-power'],
+    calc: {
+      vars: [
+        { key: 'W', symbol: 'W' },
+        { key: 'F', symbol: 'F' },
+        { key: 'd', symbol: 'd' },
+        { key: 'theta', symbol: 'θ (deg)' },
+      ],
+      residual: (v) => v.W - v.F * v.d * Math.cos((v.theta * Math.PI) / 180),
+    },
   },
   {
     id: 'phys-power',
@@ -535,10 +1076,19 @@ export const formulas: Formula[] = [
     title: 'Power',
     latex: 'P = \\frac{W}{t}',
     variables: [
+      { symbol: 'P', meaning: 'Power' },
       { symbol: 'W', meaning: 'Work done' },
       { symbol: 't', meaning: 'Time' },
     ],
     related: ['phys-work', 'phys-ohms-law'],
+    calc: {
+      vars: [
+        { key: 'P', symbol: 'P' },
+        { key: 'W', symbol: 'W' },
+        { key: 't', symbol: 't' },
+      ],
+      residual: (v) => v.P - v.W / v.t,
+    },
   },
   {
     id: 'phys-wave-speed',
@@ -547,9 +1097,168 @@ export const formulas: Formula[] = [
     title: 'Wave Speed',
     latex: 'v = f\\lambda',
     variables: [
+      { symbol: 'v', meaning: 'Wave speed' },
       { symbol: 'f', meaning: 'Frequency' },
       { symbol: 'λ', meaning: 'Wavelength' },
     ],
+    related: ['phys-photon-energy'],
+    calc: {
+      vars: [
+        { key: 'v', symbol: 'v' },
+        { key: 'f', symbol: 'f' },
+        { key: 'lambda', symbol: 'λ' },
+      ],
+      residual: (v) => v.v - v.f * v.lambda,
+    },
+  },
+  {
+    id: 'phys-photon-energy',
+    category: 'physics',
+    label: 'E=hf',
+    title: 'Photon Energy',
+    latex: 'E = hf',
+    variables: [
+      { symbol: 'E', meaning: 'Photon energy' },
+      { symbol: 'h', meaning: "Planck's constant" },
+      { symbol: 'f', meaning: 'Frequency' },
+    ],
+    related: ['phys-wave-speed', 'phys-mass-energy'],
+    calc: {
+      vars: [
+        { key: 'E', symbol: 'E' },
+        { key: 'h', symbol: 'h', defaultValue: 6.626e-34 },
+        { key: 'f', symbol: 'f' },
+      ],
+      residual: (v) => v.E - v.h * v.f,
+    },
+  },
+  {
+    id: 'phys-hookes-law',
+    category: 'physics',
+    label: 'F=-kx',
+    title: "Hooke's Law",
+    latex: 'F = -kx',
+    variables: [
+      { symbol: 'F', meaning: 'Restoring force exerted by the spring' },
+      { symbol: 'k', meaning: 'Spring constant' },
+      { symbol: 'x', meaning: 'Displacement from equilibrium' },
+    ],
+    related: ['phys-spring-pe', 'phys-period-spring'],
+    calc: {
+      vars: [
+        { key: 'F', symbol: 'F' },
+        { key: 'k', symbol: 'k' },
+        { key: 'x', symbol: 'x' },
+      ],
+      residual: (v) => v.F + v.k * v.x,
+    },
+  },
+  {
+    id: 'phys-spring-pe',
+    category: 'physics',
+    label: 'PEₛ=½kx²',
+    title: 'Spring Potential Energy',
+    latex: 'PE_s = \\frac{1}{2}kx^2',
+    variables: [
+      { symbol: 'PEₛ', meaning: 'Elastic potential energy stored in the spring' },
+      { symbol: 'k', meaning: 'Spring constant' },
+      { symbol: 'x', meaning: 'Displacement from equilibrium' },
+    ],
+    related: ['phys-hookes-law', 'phys-period-spring'],
+    calc: {
+      vars: [
+        { key: 'PEs', symbol: 'PEₛ' },
+        { key: 'k', symbol: 'k' },
+        { key: 'x', symbol: 'x' },
+      ],
+      residual: (v) => v.PEs - 0.5 * v.k * v.x * v.x,
+    },
+  },
+  {
+    id: 'phys-period-spring',
+    category: 'physics',
+    label: 'T=2π√(m/k)',
+    title: 'Period of a Spring (SHM)',
+    latex: 'T = 2\\pi\\sqrt{\\frac{m}{k}}',
+    variables: [
+      { symbol: 'T', meaning: 'Period of oscillation' },
+      { symbol: 'm', meaning: 'Mass attached to the spring' },
+      { symbol: 'k', meaning: 'Spring constant' },
+    ],
+    related: ['phys-hookes-law', 'phys-period-pendulum'],
+    calc: {
+      vars: [
+        { key: 'T', symbol: 'T' },
+        { key: 'm', symbol: 'm' },
+        { key: 'k', symbol: 'k' },
+      ],
+      residual: (v) => v.T - 2 * Math.PI * Math.sqrt(v.m / v.k),
+    },
+  },
+  {
+    id: 'phys-period-pendulum',
+    category: 'physics',
+    label: 'T=2π√(L/g)',
+    title: 'Period of a Pendulum',
+    latex: 'T = 2\\pi\\sqrt{\\frac{L}{g}}',
+    variables: [
+      { symbol: 'T', meaning: 'Period of oscillation' },
+      { symbol: 'L', meaning: 'Pendulum length' },
+      { symbol: 'g', meaning: 'Gravitational acceleration' },
+    ],
+    related: ['phys-period-spring'],
+    calc: {
+      vars: [
+        { key: 'T', symbol: 'T' },
+        { key: 'L', symbol: 'L' },
+        { key: 'g', symbol: 'g', defaultValue: 9.8 },
+      ],
+      residual: (v) => v.T - 2 * Math.PI * Math.sqrt(v.L / v.g),
+    },
+  },
+  {
+    id: 'phys-pressure',
+    category: 'physics',
+    label: 'P=F/A',
+    title: 'Pressure',
+    latex: 'P = \\frac{F}{A}',
+    variables: [
+      { symbol: 'P', meaning: 'Pressure' },
+      { symbol: 'F', meaning: 'Applied force' },
+      { symbol: 'A', meaning: 'Area' },
+    ],
+    related: ['phys-buoyancy', 'chem-ideal-gas'],
+    calc: {
+      vars: [
+        { key: 'P', symbol: 'P' },
+        { key: 'F', symbol: 'F' },
+        { key: 'A', symbol: 'A' },
+      ],
+      residual: (v) => v.P - v.F / v.A,
+    },
+  },
+  {
+    id: 'phys-buoyancy',
+    category: 'physics',
+    label: 'Fb=ρVg',
+    title: 'Buoyant Force',
+    latex: 'F_b = \\rho V g',
+    variables: [
+      { symbol: 'Fb', meaning: 'Buoyant force' },
+      { symbol: 'ρ', meaning: 'Fluid density' },
+      { symbol: 'V', meaning: 'Displaced fluid volume' },
+      { symbol: 'g', meaning: 'Gravitational acceleration' },
+    ],
+    related: ['phys-pressure', 'chem-density'],
+    calc: {
+      vars: [
+        { key: 'Fb', symbol: 'Fb' },
+        { key: 'rho', symbol: 'ρ' },
+        { key: 'V', symbol: 'V' },
+        { key: 'g', symbol: 'g', defaultValue: 9.8 },
+      ],
+      residual: (v) => v.Fb - v.rho * v.V * v.g,
+    },
   },
 
   // ---------- CHEMISTRY ----------
@@ -567,6 +1276,16 @@ export const formulas: Formula[] = [
       { symbol: 'T', meaning: 'Temperature (K)' },
     ],
     related: ['chem-combined-gas'],
+    calc: {
+      vars: [
+        { key: 'P', symbol: 'P' },
+        { key: 'V', symbol: 'V' },
+        { key: 'n', symbol: 'n' },
+        { key: 'R', symbol: 'R', defaultValue: 8.314 },
+        { key: 'T', symbol: 'T' },
+      ],
+      residual: (v) => v.P * v.V - v.n * v.R * v.T,
+    },
   },
   {
     id: 'chem-molarity',
@@ -576,6 +1295,14 @@ export const formulas: Formula[] = [
     latex: 'M = \\frac{\\text{mol solute}}{\\text{L solution}}',
     variables: [{ symbol: 'M', meaning: 'Molar concentration' }],
     related: ['chem-dilution'],
+    calc: {
+      vars: [
+        { key: 'M', symbol: 'M' },
+        { key: 'mol', symbol: 'mol solute' },
+        { key: 'L', symbol: 'L solution' },
+      ],
+      residual: (v) => v.M - v.mol / v.L,
+    },
   },
   {
     id: 'chem-dilution',
@@ -588,6 +1315,15 @@ export const formulas: Formula[] = [
       { symbol: 'M₂, V₂', meaning: 'Final concentration & volume' },
     ],
     related: ['chem-molarity'],
+    calc: {
+      vars: [
+        { key: 'M1', symbol: 'M₁' },
+        { key: 'V1', symbol: 'V₁' },
+        { key: 'M2', symbol: 'M₂' },
+        { key: 'V2', symbol: 'V₂' },
+      ],
+      residual: (v) => v.M1 * v.V1 - v.M2 * v.V2,
+    },
   },
   {
     id: 'chem-ph',
@@ -595,7 +1331,17 @@ export const formulas: Formula[] = [
     label: 'pH=-log[H⁺]',
     title: 'pH',
     latex: '\\text{pH} = -\\log[H^+]',
-    variables: [{ symbol: '[H⁺]', meaning: 'Hydrogen ion concentration' }],
+    variables: [
+      { symbol: 'pH', meaning: 'Resulting pH value' },
+      { symbol: '[H⁺]', meaning: 'Hydrogen ion concentration' },
+    ],
+    calc: {
+      vars: [
+        { key: 'pH', symbol: 'pH' },
+        { key: 'H', symbol: '[H⁺]' },
+      ],
+      residual: (v) => v.pH - -Math.log10(v.H),
+    },
   },
   {
     id: 'chem-percent-yield',
@@ -604,6 +1350,14 @@ export const formulas: Formula[] = [
     title: 'Percent Yield',
     latex: '\\%\\,\\text{Yield} = \\frac{\\text{actual}}{\\text{theoretical}} \\times 100\\%',
     variables: [],
+    calc: {
+      vars: [
+        { key: 'Y', symbol: '% Yield' },
+        { key: 'actual', symbol: 'actual' },
+        { key: 'theoretical', symbol: 'theoretical' },
+      ],
+      residual: (v) => v.Y - (v.actual / v.theoretical) * 100,
+    },
   },
   {
     id: 'chem-combined-gas',
@@ -615,6 +1369,17 @@ export const formulas: Formula[] = [
       { symbol: 'P, V, T', meaning: 'Pressure, volume, temperature' },
     ],
     related: ['chem-ideal-gas'],
+    calc: {
+      vars: [
+        { key: 'P1', symbol: 'P₁' },
+        { key: 'V1', symbol: 'V₁' },
+        { key: 'T1', symbol: 'T₁' },
+        { key: 'P2', symbol: 'P₂' },
+        { key: 'V2', symbol: 'V₂' },
+        { key: 'T2', symbol: 'T₂' },
+      ],
+      residual: (v) => (v.P1 * v.V1) / v.T1 - (v.P2 * v.V2) / v.T2,
+    },
   },
   {
     id: 'chem-rate-law',
@@ -623,6 +1388,8 @@ export const formulas: Formula[] = [
     title: 'Rate Law',
     latex: '\\text{rate} = k[A]^m[B]^n',
     variables: [
+      { symbol: 'rate', meaning: 'Reaction rate' },
+      { symbol: '[A], [B]', meaning: 'Reactant concentrations' },
       { symbol: 'k', meaning: 'Rate constant' },
       { symbol: 'm, n', meaning: 'Reaction orders' },
     ],
@@ -634,10 +1401,20 @@ export const formulas: Formula[] = [
     title: 'Gibbs Free Energy',
     latex: '\\Delta G = \\Delta H - T\\Delta S',
     variables: [
+      { symbol: 'ΔG', meaning: 'Change in Gibbs free energy' },
       { symbol: 'ΔH', meaning: 'Change in enthalpy' },
       { symbol: 'T', meaning: 'Temperature (K)' },
       { symbol: 'ΔS', meaning: 'Change in entropy' },
     ],
+    calc: {
+      vars: [
+        { key: 'G', symbol: 'ΔG' },
+        { key: 'H', symbol: 'ΔH' },
+        { key: 'T', symbol: 'T' },
+        { key: 'S', symbol: 'ΔS' },
+      ],
+      residual: (v) => v.G - (v.H - v.T * v.S),
+    },
   },
   {
     id: 'chem-half-life',
@@ -646,10 +1423,21 @@ export const formulas: Formula[] = [
     title: 'Radioactive Half-Life',
     latex: 'N(t) = N_0 \\left(\\frac{1}{2}\\right)^{t/t_{1/2}}',
     variables: [
+      { symbol: 'N(t)', meaning: 'Quantity remaining at time t' },
       { symbol: 'N₀', meaning: 'Initial quantity' },
+      { symbol: 't', meaning: 'Elapsed time' },
       { symbol: 't½', meaning: 'Half-life' },
     ],
     related: ['alg-exp-growth'],
+    calc: {
+      vars: [
+        { key: 'N', symbol: 'N(t)' },
+        { key: 'N0', symbol: 'N₀' },
+        { key: 't', symbol: 't' },
+        { key: 'thalf', symbol: 't½' },
+      ],
+      residual: (v) => v.N - v.N0 * Math.pow(0.5, v.t / v.thalf),
+    },
   },
   {
     id: 'chem-density',
@@ -658,9 +1446,19 @@ export const formulas: Formula[] = [
     title: 'Density',
     latex: '\\rho = \\frac{m}{V}',
     variables: [
+      { symbol: 'ρ', meaning: 'Density' },
       { symbol: 'm', meaning: 'Mass' },
       { symbol: 'V', meaning: 'Volume' },
     ],
+    related: ['phys-buoyancy'],
+    calc: {
+      vars: [
+        { key: 'rho', symbol: 'ρ' },
+        { key: 'm', symbol: 'm' },
+        { key: 'V', symbol: 'V' },
+      ],
+      residual: (v) => v.rho - v.m / v.V,
+    },
   },
   {
     id: 'chem-daltons-law',
@@ -668,7 +1466,10 @@ export const formulas: Formula[] = [
     label: 'Pₜ=ΣPᵢ',
     title: "Dalton's Law of Partial Pressures",
     latex: 'P_{total} = \\sum_i P_i',
-    variables: [{ symbol: 'Pᵢ', meaning: 'Partial pressure of gas i' }],
+    variables: [
+      { symbol: 'Pₜ', meaning: 'Total pressure' },
+      { symbol: 'Pᵢ', meaning: 'Partial pressure of gas i' },
+    ],
     related: ['chem-ideal-gas'],
   },
   {
@@ -678,6 +1479,7 @@ export const formulas: Formula[] = [
     title: 'Average Atomic Mass',
     latex: 'M = \\sum_i f_i \\cdot m_i',
     variables: [
+      { symbol: 'M', meaning: 'Average atomic mass' },
       { symbol: 'fᵢ', meaning: 'Fractional abundance of isotope i' },
       { symbol: 'mᵢ', meaning: 'Mass of isotope i' },
     ],
@@ -692,6 +1494,7 @@ export const formulas: Formula[] = [
     latex: 'f(n) = O(g(n)) \\iff f(n) \\le c\\cdot g(n)',
     variables: [
       { symbol: 'f(n)', meaning: "Algorithm's growth rate" },
+      { symbol: 'g(n)', meaning: 'Reference growth function' },
       { symbol: 'c', meaning: 'A positive constant' },
     ],
     related: ['cs-master-theorem'],
@@ -703,8 +1506,10 @@ export const formulas: Formula[] = [
     title: 'Master Theorem (Recurrence)',
     latex: 'T(n) = aT\\!\\left(\\frac{n}{b}\\right) + f(n)',
     variables: [
+      { symbol: 'T(n)', meaning: 'Running time for input size n' },
       { symbol: 'a', meaning: 'Number of subproblems' },
       { symbol: 'b', meaning: 'Factor by which n shrinks' },
+      { symbol: 'f(n)', meaning: 'Cost of work done outside the recursive calls' },
     ],
     related: ['cs-big-o'],
   },
@@ -722,7 +1527,10 @@ export const formulas: Formula[] = [
     label: 'H(X)=-Σp(x)log₂p(x)',
     title: 'Shannon Entropy',
     latex: 'H(X) = -\\sum_{x} p(x)\\log_2 p(x)',
-    variables: [{ symbol: 'p(x)', meaning: 'Probability of symbol x' }],
+    variables: [
+      { symbol: 'H(X)', meaning: 'Entropy of X, in bits' },
+      { symbol: 'p(x)', meaning: 'Probability of symbol x' },
+    ],
     related: ['cs-channel-capacity'],
   },
   {
@@ -732,10 +1540,19 @@ export const formulas: Formula[] = [
     title: 'Shannon-Hartley Channel Capacity',
     latex: 'C = B\\log_2\\left(1 + \\frac{S}{N}\\right)',
     variables: [
+      { symbol: 'C', meaning: 'Channel capacity' },
       { symbol: 'B', meaning: 'Bandwidth' },
       { symbol: 'S/N', meaning: 'Signal-to-noise ratio' },
     ],
     related: ['cs-shannon-entropy', 'cs-nyquist'],
+    calc: {
+      vars: [
+        { key: 'C', symbol: 'C' },
+        { key: 'B', symbol: 'B' },
+        { key: 'SNR', symbol: 'S/N' },
+      ],
+      residual: (v) => v.C - v.B * (Math.log(1 + v.SNR) / Math.log(2)),
+    },
   },
   {
     id: 'cs-amdahls-law',
@@ -744,9 +1561,18 @@ export const formulas: Formula[] = [
     title: "Amdahl's Law",
     latex: '\\text{Speedup} = \\frac{1}{(1-P) + \\frac{P}{S}}',
     variables: [
+      { symbol: 'Speedup', meaning: 'Overall speedup from parallelization' },
       { symbol: 'P', meaning: 'Proportion that can be parallelized' },
       { symbol: 'S', meaning: 'Speedup of the parallel portion' },
     ],
+    calc: {
+      vars: [
+        { key: 'total', symbol: 'Speedup' },
+        { key: 'P', symbol: 'P' },
+        { key: 'S', symbol: 'S' },
+      ],
+      residual: (v) => v.total - 1 / (1 - v.P + v.P / v.S),
+    },
   },
   {
     id: 'cs-sigmoid',
@@ -754,8 +1580,18 @@ export const formulas: Formula[] = [
     label: 'σ(x)=1/(1+e⁻ˣ)',
     title: 'Sigmoid (Logistic) Function',
     latex: '\\sigma(x) = \\frac{1}{1 + e^{-x}}',
-    variables: [{ symbol: 'x', meaning: 'Input value' }],
+    variables: [
+      { symbol: 'σ(x)', meaning: 'Sigmoid output, between 0 and 1' },
+      { symbol: 'x', meaning: 'Input value' },
+    ],
     related: ['cs-gradient-descent'],
+    calc: {
+      vars: [
+        { key: 'sigma', symbol: 'σ(x)' },
+        { key: 'x', symbol: 'x' },
+      ],
+      residual: (v) => v.sigma - 1 / (1 + Math.exp(-v.x)),
+    },
   },
   {
     id: 'cs-cross-entropy',
@@ -764,6 +1600,7 @@ export const formulas: Formula[] = [
     title: 'Cross-Entropy Loss',
     latex: 'L = -\\sum_i y_i \\log(\\hat{y}_i)',
     variables: [
+      { symbol: 'L', meaning: 'Cross-entropy loss' },
       { symbol: 'y', meaning: 'True label' },
       { symbol: 'ŷ', meaning: 'Predicted probability' },
     ],
@@ -776,6 +1613,7 @@ export const formulas: Formula[] = [
     title: 'Gradient Descent Update',
     latex: '\\theta \\leftarrow \\theta - \\alpha \\nabla J(\\theta)',
     variables: [
+      { symbol: 'θ', meaning: 'Model parameter(s) being updated' },
       { symbol: 'α', meaning: 'Learning rate' },
       { symbol: 'J(θ)', meaning: 'Cost function' },
     ],
@@ -788,9 +1626,18 @@ export const formulas: Formula[] = [
     title: 'Hash Table Load Factor',
     latex: '\\alpha = \\frac{n}{m}',
     variables: [
+      { symbol: 'α', meaning: 'Load factor' },
       { symbol: 'n', meaning: 'Number of stored entries' },
       { symbol: 'm', meaning: 'Number of buckets' },
     ],
+    calc: {
+      vars: [
+        { key: 'alpha', symbol: 'α' },
+        { key: 'n', symbol: 'n' },
+        { key: 'm', symbol: 'm' },
+      ],
+      residual: (v) => v.alpha - v.n / v.m,
+    },
   },
   {
     id: 'cs-twos-complement',
