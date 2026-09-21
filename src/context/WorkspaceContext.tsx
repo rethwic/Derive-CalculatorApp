@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Formula } from '../types';
+import { showStatus } from '../lib/islandStatus';
 
 const STORAGE_KEY = 'derive-workspace-v1';
 export const MIN_SCALE = 0.25;
@@ -81,6 +82,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   // re-adding a formula that's already pinned just brings it to front
   // instead of piling up a duplicate card.
   function addFormula(formula: Formula) {
+    const alreadyPinned = state.cards.some((c) => c.formulaId === formula.id);
+    showStatus(alreadyPinned ? 'Already in workspace' : 'Added to workspace', alreadyPinned ? 'info' : 'check');
     setState((s) => {
       const existing = s.cards.find((c) => c.formulaId === formula.id);
       if (existing) {
@@ -106,6 +109,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }
 
   function closeCard(uid: string) {
+    showStatus('Removed from workspace', 'info');
     setState((s) => ({ ...s, cards: s.cards.filter((c) => c.uid !== uid) }));
   }
 
@@ -170,6 +174,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }
 
   function clearAll() {
+    if (state.cards.length > 0) showStatus('Workspace cleared', 'info');
     setState((s) => ({ ...s, cards: [] }));
   }
 

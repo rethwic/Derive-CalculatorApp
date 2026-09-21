@@ -6,6 +6,8 @@ import { VariantPicker } from './VariantPicker';
 import type { Formula, Variable } from '../types';
 import { categoryMap } from '../data/categories';
 import { formulas } from '../data/formulas';
+import { showStatus } from '../lib/islandStatus';
+import { copyText } from '../lib/clipboard';
 
 function VariablesList({ variables }: { variables: Variable[] }) {
   if (variables.length === 0) return null;
@@ -62,6 +64,15 @@ export function FormulaDetail({
   onJump,
 }: FormulaDetailProps) {
   const [target] = useState(panelTarget);
+
+  // While a formula is open, the top bar rises above its blurred backdrop so
+  // the island's messages ("LaTeX copied") stay readable (see index.css).
+  useEffect(() => {
+    document.documentElement.dataset.detailOpen = 'true';
+    return () => {
+      delete document.documentElement.dataset.detailOpen;
+    };
+  }, []);
   const cat = categoryMap[formula.category];
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -130,6 +141,22 @@ export function FormulaDetail({
       >
         <button type="button" className="detail-close" aria-label="Close" onClick={onClose}>
           ×
+        </button>
+        <button
+          type="button"
+          className="detail-copy"
+          aria-label="Copy LaTeX"
+          title="Copy LaTeX"
+          onClick={async () => {
+            const copied = await copyText(activeVariant?.latex ?? formula.latex);
+            if (copied) showStatus('LaTeX copied', 'copy');
+            else showStatus("Couldn't copy", 'info');
+          }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="9" y="9" width="11" height="11" rx="2.5" stroke="currentColor" strokeWidth="2" />
+            <path d="M5 15V6.5A2.5 2.5 0 017.5 4H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
         </button>
         <span className="detail-category">{cat.name}</span>
         <h2 className="detail-title">{formula.title}</h2>

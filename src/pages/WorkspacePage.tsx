@@ -93,7 +93,6 @@ export function WorkspacePage() {
   const {
     view,
     cards,
-    addFormula,
     closeCard,
     focusCard,
     moveCard,
@@ -272,7 +271,7 @@ export function WorkspacePage() {
         onMouseEnter={() => setEdgeOpen(true)}
         onMouseLeave={() => setEdgeOpen(false)}
       >
-        <WorkspaceSearchLauncher onSelect={addFormula} />
+        <WorkspaceSearchLauncher />
         <motion.div
           ref={resizeShapeRef}
           className="workspace-edge-icon workspace-resize-shape glass"

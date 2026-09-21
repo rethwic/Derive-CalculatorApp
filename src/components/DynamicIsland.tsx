@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { flushSync } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { setTheme, useTheme } from '../lib/theme';
+import { ACCENTS, setAccent, setTheme, useAccent, useTheme, type Accent } from '../lib/theme';
+import { showStatus, useIslandStatus, type StatusIcon } from '../lib/islandStatus';
+import { dialTick, unlockDialAudio } from '../lib/dialFeel';
+import { cancelTimer, formatCountdown, pauseTimer, resumeTimer, startTimer, useTimer } from '../lib/timer';
 
 // Each of the four slots is a vertical drum of digits. The digit that is
 // actually correct is always the one sitting in the window; between changes
@@ -53,7 +56,11 @@ function drumTargets(now: Date): number[] {
 }
 
 function clockLabel(date: Date): string {
-  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
 }
 
 function dayLabel(date: Date): string {
@@ -77,6 +84,249 @@ function MoonIcon() {
   );
 }
 
+// Minutes offered as one-tap timers in the open island.
+const TIMER_PRESETS = [15, 30, 60];
+
+// The timer badge on the pill's left: a small circle with the whole minutes
+// left inside, and a ring around it that drains over each minute. When the
+// ring has run all the way round the number drops by one and the ring refills.
+function TimerBadge({ minutes, fraction, paused }: { minutes: number; fraction: number; paused: boolean }) {
+  const f = Math.max(0, Math.min(1, fraction));
+  return (
+    <span className={`island-timer${paused ? ' island-timer-is-paused' : ''}`} aria-hidden="true">
+      <svg className="island-ring" viewBox="0 0 32 32">
+        <circle className="island-ring-track" cx="16" cy="16" r="14" />
+        <circle
+          className="island-ring-arc"
+          cx="16"
+          cy="16"
+          r="14"
+          pathLength={1}
+          strokeDasharray={`${f} 1`}
+          style={{ opacity: f < 0.008 ? 0 : 1 }}
+        />
+      </svg>
+      <span className="island-timer-text" data-long={minutes >= 100 ? 'true' : undefined}>
+        {minutes}
+      </span>
+    </span>
+  );
+}
+
+// The ruler wraps around a disk seen edge-on: half the window shows this many
+// minutes either side of the middle, out to HALF_ANGLE, where the ticks turn
+// away. The most it will go to is DIAL_MAX.
+const DIAL_HALF = 27;
+const DIAL_HALF_ANGLE = (70 * Math.PI) / 180;
+const DIAL_ANGLE = DIAL_HALF_ANGLE / DIAL_HALF;
+const DIAL_MAX = 180;
+const DIAL_TICKS = Array.from({ length: DIAL_MAX + 1 }, (_, i) => i);
+
+// A ruler to scrub: drag it sideways (or use the wheel or arrow keys) to pick
+// the minutes, then Start. The reading under the pointer is big and on the right.
+function TimerDial({
+  minutes,
+  onChange,
+  onStart,
+  onBack,
+  focusable,
+}: {
+  minutes: number;
+  onChange: (minutes: number) => void;
+  onStart: () => void;
+  onBack: () => void;
+  focusable: boolean;
+}) {
+  const windowRef = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ x: number; start: number; samples: { t: number; m: number }[] } | null>(null);
+  const inertia = useRef(0);
+  const [dragging, setDragging] = useState(false);
+  const [radius, setRadius] = useState(80);
+  // Where the disk is turned to. Dragging follows the finger exactly; a key,
+  // the wheel, or letting go eases it to the chosen minute.
+  const [pos, setPos] = useState(minutes);
+  const posRef = useRef(minutes);
+  const clamp = (v: number) => Math.max(1, Math.min(DIAL_MAX, v));
+  const whole = Math.round(minutes);
+
+  useLayoutEffect(() => {
+    const el = windowRef.current;
+    if (el) setRadius(el.clientWidth / 2 / Math.sin(DIAL_HALF_ANGLE));
+  }, []);
+
+  // A click (and a buzz) for every minute passed — a firmer one on the fives.
+  const lastWhole = useRef(whole);
+  useEffect(() => {
+    if (whole !== lastWhole.current) {
+      lastWhole.current = whole;
+      dialTick(whole % 5 === 0);
+    }
+  }, [whole]);
+
+  const stopInertia = () => {
+    cancelAnimationFrame(inertia.current);
+    inertia.current = 0;
+  };
+  useEffect(() => stopInertia, []);
+
+  useEffect(() => {
+    if (dragging) {
+      posRef.current = minutes;
+      setPos(minutes);
+      return;
+    }
+    let raf = 0;
+    const tick = () => {
+      const diff = minutes - posRef.current;
+      posRef.current = Math.abs(diff) < 0.01 ? minutes : posRef.current + diff * 0.22;
+      setPos(posRef.current);
+      if (posRef.current !== minutes) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [minutes, dragging]);
+
+  function onDown(e: React.PointerEvent) {
+    unlockDialAudio();
+    stopInertia();
+    windowRef.current?.setPointerCapture(e.pointerId);
+    drag.current = { x: e.clientX, start: minutes, samples: [] };
+    setDragging(true);
+  }
+  function onMove(e: React.PointerEvent) {
+    const d = drag.current;
+    if (!d) return;
+    const m = clamp(d.start - (e.clientX - d.x) / (radius * DIAL_ANGLE));
+    d.samples.push({ t: performance.now(), m });
+    if (d.samples.length > 6) d.samples.shift();
+    onChange(m);
+  }
+  function onUp() {
+    const d = drag.current;
+    if (!d) return;
+    drag.current = null;
+    setDragging(false);
+
+    // A flick keeps the disk spinning, slowing to a stop on a whole minute.
+    const now = performance.now();
+    const recent = d.samples.filter((s) => now - s.t < 90);
+    let v = 0;
+    if (recent.length >= 2) {
+      const first = recent[0];
+      const last = recent[recent.length - 1];
+      v = (last.m - first.m) / Math.max(1, last.t - first.t);
+    }
+    if (Math.abs(v) < 0.008) {
+      onChange(whole);
+      return;
+    }
+    let m = minutes;
+    let prev = now;
+    const step = (t: number) => {
+      const dt = Math.min(48, t - prev);
+      prev = t;
+      m = clamp(m + v * dt);
+      v *= Math.pow(0.94, dt / 16);
+      const atEdge = m <= 1 || m >= DIAL_MAX;
+      if (Math.abs(v) < 0.0025 || atEdge) {
+        inertia.current = 0;
+        onChange(Math.round(m));
+        return;
+      }
+      onChange(m);
+      inertia.current = requestAnimationFrame(step);
+    };
+    inertia.current = requestAnimationFrame(step);
+  }
+  function onKey(e: React.KeyboardEvent) {
+    unlockDialAudio();
+    stopInertia();
+    const jump = e.shiftKey ? 5 : 1;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') onChange(clamp(whole + jump));
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') onChange(clamp(whole - jump));
+    else if (e.key === 'Home') onChange(1);
+    else if (e.key === 'End') onChange(DIAL_MAX);
+    else if (e.key === 'Enter') onStart();
+    else return;
+    e.preventDefault();
+  }
+
+  return (
+    <span className="island-dial">
+      <div
+        ref={windowRef}
+        className={`island-dial-window${dragging ? ' island-dial-dragging' : ''}`}
+        role="slider"
+        tabIndex={focusable ? 0 : -1}
+        aria-label="Timer minutes"
+        aria-valuemin={1}
+        aria-valuemax={DIAL_MAX}
+        aria-valuenow={whole}
+        aria-valuetext={`${whole} minutes`}
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={onUp}
+        onWheel={(e) => {
+          unlockDialAudio();
+          stopInertia();
+          onChange(clamp(whole + (e.deltaY + e.deltaX > 0 ? 1 : -1)));
+        }}
+        onKeyDown={onKey}
+      >
+        <div className="island-dial-strip">
+          {DIAL_TICKS.map((i) => {
+            const theta = (i - pos) * DIAL_ANGLE;
+            if (Math.abs(theta) >= 1.5) return null;
+            const c = Math.cos(theta);
+            return (
+              <i
+                key={i}
+                className={`island-dial-tick${i % 5 === 0 ? ' island-dial-tick-major' : ''}${i <= whole ? ' island-dial-tick-on' : ''}`}
+                style={
+                  {
+                    '--f': Math.pow(c, 1.2),
+                    '--b': Math.pow(1 - c, 1.3),
+                    transform: `translateX(${radius * Math.sin(theta)}px) scale(${c}, ${Math.pow(c, 0.4)})`,
+                  } as React.CSSProperties
+                }
+                data-label={i % 5 === 0 ? i : undefined}
+              />
+            );
+          })}
+        </div>
+        <span className="island-dial-marker" aria-hidden="true" />
+      </div>
+      <span className="island-dial-row">
+        <button
+          type="button"
+          className="island-dial-back"
+          aria-label="Back to timer presets"
+          tabIndex={focusable ? 0 : -1}
+          onClick={onBack}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M15 5l-7 7 7 7"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+        <button type="button" className="island-dial-start" tabIndex={focusable ? 0 : -1} onClick={onStart}>
+          Start Timer
+        </button>
+        <span className="island-dial-readout" aria-hidden="true">
+          {formatCountdown(whole * 60000)}
+        </span>
+      </span>
+    </span>
+  );
+}
+
 // How long a press has to be held before the island opens up. A shorter press
 // is just a click (and goes home).
 const HOLD_MS = 320;
@@ -87,12 +337,65 @@ function drumDigits(mod: number): number[] {
   return Array.from({ length: mod + 2 }, (_, i) => (i - 1 + mod) % mod);
 }
 
+// --- Settings hint -----------------------------------------------------------
+// Everything behind the long press (dark mode, accent colors) is invisible
+// until you know to hold the clock, so every time the page loads the island
+// gives a gentle pulse and a small label. It goes away on any click, when you
+// open the island, or after a few seconds. Nothing is remembered between loads.
+const HINT_DELAY_MS = 2600;
+const HINT_VISIBLE_MS = 7000;
+
+function StatusGlyph({ icon }: { icon: StatusIcon }) {
+  if (icon === 'copy') {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="9" y="9" width="11" height="11" rx="2.5" stroke="currentColor" strokeWidth="2.2" />
+        <path d="M5 15V6.5A2.5 2.5 0 017.5 4H15" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (icon === 'bell') {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M6 16.5V11a6 6 0 1112 0v5.5l1.5 1.5h-15L6 16.5z"
+          stroke="currentColor"
+          strokeWidth="2.1"
+          strokeLinejoin="round"
+        />
+        <path d="M10 20.5a2 2 0 004 0" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (icon === 'info') {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.2" />
+        <path d="M12 11v5.5M12 7.6v.1" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.2" />
+      <path
+        d="M7.8 12.4l3 3 5.4-6"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 // A small black pill in the style of the iPhone's Dynamic Island, showing
 // the 12-hour time as four rolling digits (06:50, always with a leading
 // zero). It doubles as the site's home button, and holding it down opens it
 // into a larger rounded rectangle that stays open until you click outside it:
-// the day on the left of the time, the date on the right, and a dark mode
-// switch underneath.
+// the day on the left of the time, the date on the right, and underneath a
+// dark mode switch and the accent color picker. It also briefly turns into a
+// confirmation ("Added to workspace") when something in the app reports one.
 // Positioned by <TopBar>, which sits it beside the calculator button.
 export function DynamicIsland() {
   const [now, setNow] = useState(() => new Date());
@@ -109,6 +412,106 @@ export function DynamicIsland() {
   const heldOpen = useRef(false);
 
   const linkRef = useRef<HTMLDivElement>(null);
+
+  // --- status messages: the pill widens to fit the message, the time fades out
+  // and the message fades in, then it all settles back. The last message is
+  // kept while it fades out, so the text doesn't vanish mid-shrink.
+  const status = useIslandStatus();
+  const showingStatus = status !== null && !expanded;
+  const lastStatus = useRef(status);
+  if (status) lastStatus.current = status;
+  const shownStatus = status ?? lastStatus.current;
+  const statusRef = useRef<HTMLSpanElement>(null);
+  const [statusWidth, setStatusWidth] = useState(0);
+  useLayoutEffect(() => {
+    const width = statusRef.current?.offsetWidth ?? 0;
+    setStatusWidth(width);
+    // Also published on the top bar, so the calculator button (a sibling, which
+    // can't see this component's own variable) can slide out of the way.
+    linkRef.current?.parentElement?.style.setProperty('--status-w', `${width}px`);
+  }, [shownStatus?.id]);
+
+  // --- the timer: shown in the pill (with a draining ring) while it runs, and
+  // controlled from the open island. It lives in lib/timer.ts, so it keeps
+  // counting as you move between pages.
+  const timer = useTimer();
+  const timerActive = timer.phase !== 'idle';
+  const showingTimer = timerActive && !expanded && !showingStatus;
+  // The badge counts whole minutes still to come after the current one, and
+  // the ring is how much of the current minute is left.
+  const wholeMinutes = Math.ceil(timer.remainingMs / 60000);
+  const badgeMinutes = Math.max(0, wholeMinutes - 1);
+  const minuteFraction = wholeMinutes <= 0 ? 0 : (timer.remainingMs - badgeMinutes * 60000) / 60000;
+
+  // "Custom" swaps the settings rows for a scrubbable minutes dial.
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customMinutes, setCustomMinutes] = useState(15);
+  useEffect(() => {
+    if (!expanded) setCustomOpen(false);
+  }, [expanded]);
+
+  // The countdown also rides in the browser tab's title, so you can watch it
+  // from another tab.
+  const baseTitle = useRef<string | null>(null);
+  useEffect(() => {
+    if (timerActive) {
+      if (baseTitle.current === null) baseTitle.current = document.title;
+      document.title = `${formatCountdown(timer.remainingMs)} · ${baseTitle.current}`;
+    } else if (baseTitle.current !== null) {
+      document.title = baseTitle.current;
+      baseTitle.current = null;
+    }
+  }, [timerActive, timer.remainingMs]);
+  useEffect(
+    () => () => {
+      if (baseTitle.current !== null) document.title = baseTitle.current;
+    },
+    [],
+  );
+
+  function beginTimer(minutes: number) {
+    setCustomOpen(false);
+    startTimer(minutes);
+    showStatus(`Timer set · ${minutes} min`, 'bell', 1800);
+    // Collapse, so the countdown is what you see.
+    setExpanded(false);
+  }
+
+  // Whenever the island is bigger than its resting size (open, or showing a
+  // message) it overlaps the calculator button, so it stays raised above it —
+  // and stays raised through the shrink back, until it's really done.
+  const bigger = expanded || showingStatus;
+  const [raised, setRaised] = useState(false);
+  useEffect(() => {
+    if (bigger) {
+      setRaised(true);
+      return;
+    }
+    const timer = window.setTimeout(() => setRaised(false), 700);
+    return () => window.clearTimeout(timer);
+  }, [bigger]);
+
+  // --- the first-visit hint
+  const [hintVisible, setHintVisible] = useState(false);
+  const coarsePointer = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+  useEffect(() => {
+    const timer = window.setTimeout(() => setHintVisible(true), HINT_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
+  useEffect(() => {
+    if (!hintVisible) return;
+    const hide = () => setHintVisible(false);
+    const timer = window.setTimeout(hide, HINT_VISIBLE_MS);
+    window.addEventListener('pointerdown', hide, { once: true });
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pointerdown', hide);
+    };
+  }, [hintVisible]);
+  useEffect(() => {
+    if (expanded || showingStatus) setHintVisible(false);
+  }, [expanded, showingStatus]);
+
   const theme = useTheme();
   // What the switch shows. It's set on its own, in the same instant as the
   // click, rather than derived from the theme — the theme change is a
@@ -118,10 +521,31 @@ export function DynamicIsland() {
     setChecked(theme === 'dark');
   }, [theme]);
 
+  // Same idea for the accent swatches: the ring moves to the chosen swatch at
+  // once, and the recolor ripples out from it.
+  const accent = useAccent();
+  const [selectedAccent, setSelectedAccent] = useState<Accent>(accent);
+  useEffect(() => {
+    setSelectedAccent(accent);
+  }, [accent]);
+
+  function chooseAccent(next: Accent, e: React.MouseEvent<HTMLButtonElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    document.documentElement.dataset.themeSwitching = 'true';
+    flushSync(() => setSelectedAccent(next));
+    setAccent(next, {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    });
+  }
+
   function toggleTheme(e: React.MouseEvent<HTMLButtonElement>) {
     const next = !checked;
     const rect = e.currentTarget.querySelector('.island-switch')?.getBoundingClientRect();
-    const origin = rect && { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    const origin = rect && {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    };
     // The switch snaps to its new state *before* the ripple takes its still
     // pictures, so both already show it flipped: it answers at once, and the
     // ripple starts at once, with no wait for a slide to finish first.
@@ -196,9 +620,12 @@ export function DynamicIsland() {
     };
   }, [expanded]);
 
-  useEffect(() => () => {
-    if (holdTimer.current !== null) window.clearTimeout(holdTimer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (holdTimer.current !== null) window.clearTimeout(holdTimer.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     let frame = 0;
@@ -243,7 +670,8 @@ export function DynamicIsland() {
   return (
     <div
       ref={linkRef}
-      className={`dynamic-island-link${expanded ? ' dynamic-island-link-expanded' : ''}${pressed ? ' dynamic-island-link-pressed' : ''}`}
+      className={`dynamic-island-link${expanded ? ' dynamic-island-link-expanded' : ''}${pressed ? ' dynamic-island-link-pressed' : ''}${showingStatus ? ' dynamic-island-link-status' : ''}${showingTimer ? ' dynamic-island-link-timer' : ''}${raised ? ' dynamic-island-link-raised' : ''}${hintVisible ? ' dynamic-island-link-hinting' : ''}`}
+      style={{ '--status-w': `${statusWidth}px` } as React.CSSProperties}
       onPointerDown={startHold}
       onContextMenu={(e) => e.preventDefault()}
     >
@@ -254,6 +682,31 @@ export function DynamicIsland() {
           animate={{ y: 0, opacity: 1, scale: 1 }}
           transition={{ type: 'spring', damping: 20, stiffness: 260 }}
         >
+          <span ref={statusRef} className="island-status" role="status">
+            {shownStatus && (
+              <>
+                <span className="island-status-icon">
+                  <StatusGlyph icon={shownStatus.icon} />
+                </span>
+                <span className="island-status-text">{shownStatus.text}</span>
+                {shownStatus.actions?.map((action) => (
+                  <button
+                    key={action.label}
+                    type="button"
+                    className="island-status-action"
+                    tabIndex={showingStatus ? 0 : -1}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={action.run}
+                  >
+                    {action.label}
+                  </button>
+                ))}
+              </>
+            )}
+          </span>
+          {timerActive && (
+            <TimerBadge minutes={badgeMinutes} fraction={minuteFraction} paused={timer.phase === 'paused'} />
+          )}
           <span className="island-top">
             <span className="island-side island-side-left" aria-hidden="true">
               {dayLabel(now)}
@@ -261,7 +714,7 @@ export function DynamicIsland() {
             <Link
               to="/"
               className="island-digits"
-              aria-label={`Home. Current time ${label}`}
+              aria-label={`Home. Current time ${label}${timerActive ? `. Timer ${formatCountdown(timer.remainingMs)} remaining${timer.phase === 'paused' ? ', paused' : ''}` : ''}`}
               draggable={false}
               onClick={handleClick}
             >
@@ -289,20 +742,141 @@ export function DynamicIsland() {
             </span>
           </span>
           <span className="island-controls" onPointerDown={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="island-theme"
-              role="switch"
-              aria-checked={checked}
-              tabIndex={expanded ? 0 : -1}
-              onClick={toggleTheme}
-            >
-              <MoonIcon />
-              <span className="island-theme-label">Dark mode</span>
-              <span className="island-switch" aria-hidden="true" />
-            </button>
+            {customOpen && !timerActive ? (
+              <TimerDial
+                minutes={customMinutes}
+                onChange={setCustomMinutes}
+                onStart={() => beginTimer(Math.round(customMinutes))}
+                onBack={() => setCustomOpen(false)}
+                focusable={expanded}
+              />
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="island-theme"
+                  role="switch"
+                  aria-checked={checked}
+                  tabIndex={expanded ? 0 : -1}
+                  onClick={toggleTheme}
+                >
+                  <MoonIcon />
+                  <span className="island-theme-label">Dark mode</span>
+                  <span className="island-switch" aria-hidden="true" />
+                </button>
+                <span className="island-accent" role="radiogroup" aria-label="Accent color">
+                  <span className="island-accent-label">Color</span>
+                  <span className="island-swatches">
+                    {ACCENTS.map((a) => (
+                      <button
+                        key={a.id}
+                        type="button"
+                        className="island-swatch"
+                        role="radio"
+                        aria-checked={selectedAccent === a.id}
+                        aria-label={a.label}
+                        title={a.label}
+                        tabIndex={expanded ? 0 : -1}
+                        style={{ '--from': a.from, '--to': a.to } as React.CSSProperties}
+                        onClick={(e) => chooseAccent(a.id, e)}
+                      />
+                    ))}
+                  </span>
+                </span>
+                <span className="island-timer-row" role="group" aria-label="Timer">
+                  {timerActive ? (
+                    <>
+                      <span className="island-timer-info">
+                        <span className="island-timer-readout">{formatCountdown(timer.remainingMs)}</span>
+                        <span className="island-timer-caption">
+                          {timer.phase === 'paused' ? 'Paused' : 'Remaining'}
+                        </span>
+                      </span>
+                      <span className="island-timer-buttons">
+                        <button
+                          type="button"
+                          className="island-timer-btn"
+                          aria-label={timer.phase === 'paused' ? 'Resume timer' : 'Pause timer'}
+                          tabIndex={expanded ? 0 : -1}
+                          onClick={() => (timer.phase === 'paused' ? resumeTimer() : pauseTimer())}
+                        >
+                          {timer.phase === 'paused' ? (
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M8 5.5v13l11-6.5-11-6.5z" fill="currentColor" />
+                            </svg>
+                          ) : (
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <rect x="6.5" y="5" width="4" height="14" rx="1.2" fill="currentColor" />
+                              <rect x="13.5" y="5" width="4" height="14" rx="1.2" fill="currentColor" />
+                            </svg>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          className="island-timer-btn"
+                          aria-label="Cancel timer"
+                          tabIndex={expanded ? 0 : -1}
+                          onClick={() => cancelTimer()}
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path
+                              d="M7 7l10 10M17 7L7 17"
+                              stroke="currentColor"
+                              strokeWidth="2.6"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </button>
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="island-timer-label">Timer</span>
+                      <span className="island-timer-presets">
+                        {TIMER_PRESETS.map((minutes) => (
+                          <button
+                            key={minutes}
+                            type="button"
+                            className="island-timer-preset"
+                            aria-label={`${minutes} minute timer`}
+                            tabIndex={expanded ? 0 : -1}
+                            onClick={() => beginTimer(minutes)}
+                          >
+                            {minutes}m
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          className="island-timer-preset"
+                          aria-label="Custom timer"
+                          tabIndex={expanded ? 0 : -1}
+                          onClick={() => setCustomOpen(true)}
+                        >
+                          Custom
+                        </button>
+                      </span>
+                    </>
+                  )}
+                </span>
+              </>
+            )}
           </span>
         </motion.div>
+        <AnimatePresence>
+          {hintVisible && (
+            <span className="island-hint-slot" aria-hidden="true">
+              <motion.span
+                className="island-hint"
+                initial={{ opacity: 0, y: -6, scale: 0.94 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -4, scale: 0.96 }}
+                transition={{ type: 'spring', damping: 22, stiffness: 300 }}
+              >
+                {coarsePointer ? 'Press and hold the clock for settings' : 'Hold the clock for settings'}
+              </motion.span>
+            </span>
+          )}
+        </AnimatePresence>
       </span>
     </div>
   );

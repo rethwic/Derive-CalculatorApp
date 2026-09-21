@@ -3,9 +3,11 @@ import { BrowserRouter } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { AnimatedRoutes } from './components/AnimatedRoutes';
 import { TopBar } from './components/TopBar';
+import { CommandPalette } from './components/CommandPalette';
 import { FormulaDetail } from './components/FormulaDetail';
 import { DetailContext } from './context/DetailContext';
 import { WorkspaceProvider } from './context/WorkspaceContext';
+import { addRecent } from './lib/recent';
 import type { Formula } from './types';
 
 interface DetailState {
@@ -23,7 +25,10 @@ function App() {
     rect: DOMRect | null,
     prefill?: Record<string, number>,
     variantIndex?: number,
-  ) => setDetail({ formula, rect, prefill, variantIndex });
+  ) => {
+    addRecent({ id: formula.id, variantIndex });
+    setDetail({ formula, rect, prefill, variantIndex });
+  };
 
   return (
     <DetailContext.Provider value={{ openDetail }}>
@@ -35,6 +40,7 @@ function App() {
             <AnimatedRoutes />
 
             <TopBar />
+            <CommandPalette />
 
             <AnimatePresence>
               {detail && (
@@ -44,7 +50,10 @@ function App() {
                   prefill={detail.prefill}
                   initialVariantIndex={detail.variantIndex}
                   onClose={() => setDetail(null)}
-                  onJump={(formula) => setDetail({ formula, rect: null })}
+                  onJump={(formula) => {
+                    addRecent({ id: formula.id });
+                    setDetail({ formula, rect: null });
+                  }}
                 />
               )}
             </AnimatePresence>

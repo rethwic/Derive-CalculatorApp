@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { proximityBoost, clamp } from '../lib/proximity';
+import { useAccent, useTheme } from '../lib/theme';
 
 // A "polka dot" background where the dots are tiny math symbols: a uniform,
 // mostly-static grid at rest (so it reads as a quiet texture), which lights
@@ -12,12 +13,20 @@ const REVEAL_RADIUS = 140;
 const MAX_SCALE = 1.7;
 
 const NEUTRAL_RGB = { r: 146, g: 149, b: 166 };
-const BRAND_RGB = { r: 79, g: 70, b: 229 };
+type Rgb = { r: number; g: number; b: number };
+const DEFAULT_BRAND: Rgb = { r: 79, g: 70, b: 229 };
 
-function mixColor(t: number): string {
-  const r = Math.round(NEUTRAL_RGB.r + (BRAND_RGB.r - NEUTRAL_RGB.r) * t);
-  const g = Math.round(NEUTRAL_RGB.g + (BRAND_RGB.g - NEUTRAL_RGB.g) * t);
-  const b = Math.round(NEUTRAL_RGB.b + (BRAND_RGB.b - NEUTRAL_RGB.b) * t);
+// The current accent's color, read from the --brand-rgb channels in the CSS so
+// the spotlight always matches whichever accent (and theme) is active.
+function readBrandRgb(): Rgb {
+  const parts = getComputedStyle(document.documentElement).getPropertyValue('--brand-rgb').trim().split(/\s+/).map(Number);
+  return parts.length === 3 && parts.every(Number.isFinite) ? { r: parts[0], g: parts[1], b: parts[2] } : DEFAULT_BRAND;
+}
+
+function mixColor(t: number, brand: Rgb): string {
+  const r = Math.round(NEUTRAL_RGB.r + (brand.r - NEUTRAL_RGB.r) * t);
+  const g = Math.round(NEUTRAL_RGB.g + (brand.g - NEUTRAL_RGB.g) * t);
+  const b = Math.round(NEUTRAL_RGB.b + (brand.b - NEUTRAL_RGB.b) * t);
   return `rgb(${r}, ${g}, ${b})`;
 }
 
@@ -52,6 +61,13 @@ export function SymbolGrid() {
   const focal = useRef<{ x: number; y: number } | null>(null);
   const rafScheduled = useRef(false);
   const prefersReducedMotion = useRef(false);
+  const brand = useRef<Rgb>(DEFAULT_BRAND);
+  const theme = useTheme();
+  const accent = useAccent();
+
+  useEffect(() => {
+    brand.current = readBrandRgb();
+  }, [theme, accent]);
 
   useEffect(() => {
     prefersReducedMotion.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -113,7 +129,7 @@ export function SymbolGrid() {
       const opacity = clamp(0.14 + boost * 0.86, 0, 1);
       el.style.transform = `translate(-50%, -50%) scale(${scale})`;
       el.style.opacity = String(opacity);
-      el.style.color = mixColor(boost);
+      el.style.color = mixColor(boost, brand.current);
       el.style.zIndex = String(Math.round(boost * 50));
     });
   }

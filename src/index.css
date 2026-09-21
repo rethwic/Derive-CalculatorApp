@@ -21,7 +21,10 @@
   --brand-c: #312e81;
   --brand-gradient: linear-gradient(90deg, var(--brand-a) 0%, var(--brand-b) 55%, var(--brand-c) 100%);
   --brand-color: var(--brand-b);
-  --brand-soft: rgba(79, 70, 229, 0.14);
+  /* The same colors as bare channels, for tints and shadows: rgb(var(--brand-rgb) / 0.2). */
+  --brand-rgb: 79 70 229;
+  --brand-a-rgb: 96 165 250;
+  --brand-soft: rgb(var(--brand-rgb) / 0.14);
 
   /* Tokens that flip with the theme. --surface-k scales every translucent
      white surface (1 = as designed for light; low in dark, where a bright wash
@@ -31,6 +34,7 @@
   --tint-black: 0 0 0;
   --tint-ink: 28 28 30;
   --panel-bg: rgba(248, 248, 252, 0.96);
+  --cmdk-bg: rgba(255, 255, 255, 0.78);
 
   color-scheme: light;
 }
@@ -51,12 +55,15 @@
   --brand-b: #7376f5;
   --brand-c: #c4b5fd;
   --brand-color: #7376f5;
-  --brand-soft: rgba(115, 118, 245, 0.22);
+  --brand-rgb: 115 118 245;
+  --brand-a-rgb: 124 180 255;
+  --brand-soft: rgb(var(--brand-rgb) / 0.22);
 
   --surface-k: 0.2;
   --tint-black: 255 255 255;
   --tint-ink: 236 236 241;
   --panel-bg: rgba(20, 22, 31, 0.96);
+  --cmdk-bg: rgba(26, 28, 40, 0.88);
 }
 
 * {
@@ -121,9 +128,9 @@ a {
   inset: 0;
   z-index: 0;
   background:
-    radial-gradient(ellipse 900px 700px at 12% 8%, rgba(79, 70, 229, 0.08), transparent 60%),
-    radial-gradient(ellipse 800px 800px at 88% 10%, rgba(96, 165, 250, 0.07), transparent 62%),
-    radial-gradient(ellipse 1000px 800px at 50% 105%, rgba(79, 70, 229, 0.06), transparent 65%),
+    radial-gradient(ellipse 900px 700px at 12% 8%, rgb(var(--brand-rgb) / 0.08), transparent 60%),
+    radial-gradient(ellipse 800px 800px at 88% 10%, rgb(var(--brand-a-rgb) / 0.07), transparent 62%),
+    radial-gradient(ellipse 1000px 800px at 50% 105%, rgb(var(--brand-rgb) / 0.06), transparent 65%),
     var(--bg-base);
 }
 
@@ -203,7 +210,7 @@ a {
   background-clip: text;
   color: transparent;
   text-shadow: 0 1px 0 rgb(255 255 255 / calc(0.55 * var(--surface-k))), 0 -1px 1px rgb(255 255 255 / calc(0.35 * var(--surface-k)));
-  filter: drop-shadow(0 24px 48px rgba(79, 70, 229, 0.24));
+  filter: drop-shadow(0 24px 48px rgb(var(--brand-rgb) / 0.24));
   cursor: default;
   animation: landing-title-flow 10s ease-in-out infinite, landing-title-breathe 7s ease-in-out infinite;
 }
@@ -285,9 +292,8 @@ a {
   width: 100%;
 }
 
-/* The resting trigger: looks exactly like the old static search bar, but
-   it's a plain clickable div (no real input) — clicking it is what
-   physically expands the real bar into .search-expand-panel below. */
+/* The search bar itself: a plain clickable pill (no real input). Clicking it
+   opens the command palette, where the actual searching happens. */
 .search-bar {
   display: flex;
   align-items: center;
@@ -304,9 +310,8 @@ a {
   font-size: 15px;
   text-align: left;
   /* In the narrower subject-page search slot, this text has no room to fit
-     on one line and was wrapping to two — inflating the whole bar's height
-     (and, since the expanded panel reuses that measured height, the
-     expanded bar too). Truncate instead of wrapping. */
+     on one line and was wrapping to two, inflating the bar's height.
+     Truncate instead of wrapping. */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -317,215 +322,6 @@ a {
   height: 18px;
   color: var(--ink-soft);
   flex-shrink: 0;
-}
-
-/* The real input's row, inside the expanded panel. */
-.search-bar-inner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 13px 18px;
-}
-
-.search-bar-inner input {
-  flex: 1;
-  min-width: 0;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--ink);
-  /* Matches .search-bar-placeholder exactly (font-size, padding, gap are
-     all identical between resting and expanded) so the panel's fixed
-     origin.height always exactly fits this content — no mismatch, no
-     stretched-looking pill. */
-  font-size: 15px;
-}
-
-.search-bar-inner input::placeholder {
-  color: var(--ink-soft);
-}
-
-.search-clear {
-  background: rgb(var(--tint-black) / 0.08);
-  border: none;
-  color: var(--ink);
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.search-clear:hover {
-  background: rgb(var(--tint-black) / 0.14);
-}
-
-/* A dim scrim behind the panel — click it (or Escape) to collapse the bar
-   back to where it started. */
-.search-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 55;
-  background: rgba(60, 64, 90, 0.18);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-}
-
-/* The bar itself physically travels from its resting position/size to
-   this fixed, centered, larger one (see GlobalSearch.tsx's initial/animate
-   rects) — not a separate panel appearing elsewhere. Results attach
-   directly below, inside the same block, once something's typed. */
-.search-expand-panel {
-  position: fixed;
-  z-index: 60;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  box-shadow:
-    inset 0 1px 0 var(--glass-highlight),
-    0 20px 48px rgba(60, 64, 90, 0.28);
-}
-
-/* A standalone card, not part of the search bar's own box — it has its own
-   position/size and animates independently, so a changing result count
-   only ever resizes this card, never the bar above it. */
-.search-results-card {
-  position: fixed;
-  z-index: 60;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px;
-  border-radius: 22px;
-  max-height: min(50vh, 440px);
-  overflow-y: auto;
-  box-shadow:
-    inset 0 1px 0 var(--glass-highlight),
-    0 20px 48px rgba(60, 64, 90, 0.28);
-  /* Scroll still works (wheel, trackpad, touch) — the track/thumb chrome is
-     just not drawn, per request. */
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.search-results-card::-webkit-scrollbar {
-  display: none;
-}
-
-.search-empty {
-  padding: 18px;
-  text-align: center;
-  color: var(--ink-soft);
-  font-size: 14px;
-}
-
-.search-result {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.15s ease;
-}
-
-.search-result:hover {
-  background: rgb(var(--tint-black) / 0.05);
-}
-
-.search-result-formula {
-  flex-shrink: 0;
-  min-width: 64px;
-  display: flex;
-  justify-content: center;
-  font-size: 15px;
-  color: var(--ink);
-}
-
-.search-result-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.search-result-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.search-result-category {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--brand-color);
-}
-
-/* A formula-match row that a sentence-shaped query resolved to — same
-   shell as a normal result, just with a badge instead of the category
-   line, so it reads as "found via search" rather than "computed". */
-.search-result-smart {
-  background: rgba(79, 70, 229, 0.07);
-}
-
-.search-result-badge {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--brand-color);
-}
-
-/* The one card type that carries an actual computed number rather than
-   just pointing at a formula — set apart with the brand gradient so a
-   "formula for velocity when I know..." query visibly answers itself
-   instead of reading as just another result in the list. */
-.search-smart-answer {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 14px 16px;
-  margin-bottom: 4px;
-  border-radius: 16px;
-  border: none;
-  background: var(--brand-gradient);
-  color: #fff;
-  cursor: pointer;
-  text-align: left;
-}
-
-.search-smart-answer-value {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.search-smart-answer-source {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  opacity: 0.9;
-}
-
-.search-smart-answer-source .katex-wrap {
-  color: #fff;
-}
-
-.search-smart-answer-knowns {
-  font-size: 12px;
-  opacity: 0.8;
 }
 
 /* ---------------- Subject pills (landing) ---------------- */
@@ -718,7 +514,7 @@ a {
   justify-content: center;
   color: #fff;
   background: var(--brand-gradient);
-  box-shadow: 0 12px 26px rgba(79, 70, 229, 0.32);
+  box-shadow: 0 12px 26px rgb(var(--brand-rgb) / 0.32);
 }
 
 .contact-hero-icon svg {
@@ -879,7 +675,7 @@ a {
   background: var(--brand-gradient);
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
-  box-shadow: 0 10px 22px rgba(79, 70, 229, 0.28);
+  box-shadow: 0 10px 22px rgb(var(--brand-rgb) / 0.28);
 }
 
 .contact-submit svg {
@@ -1603,7 +1399,7 @@ a {
   border-radius: 999px;
   background: var(--brand-color);
   transform: translateY(-50%);
-  box-shadow: 0 0 0 rgba(79, 70, 229, 0);
+  box-shadow: 0 0 0 rgb(var(--brand-rgb) / 0);
   transition: box-shadow 0.15s ease;
 }
 
@@ -1611,7 +1407,7 @@ a {
    to a "handle" this slider has — it lives at the fill's own edge instead
    of being a separate shape sitting on top of it. */
 .workspace-zoom-track-active .workspace-zoom-fill {
-  box-shadow: 0 0 6px rgba(79, 70, 229, 0.4);
+  box-shadow: 0 0 6px rgb(var(--brand-rgb) / 0.4);
 }
 
 .workspace-zoom-percent {
@@ -1654,7 +1450,7 @@ a {
   top: -6000px;
   width: 12000px;
   height: 12000px;
-  background-image: radial-gradient(rgba(79, 70, 229, 0.22) 1.5px, transparent 1.5px);
+  background-image: radial-gradient(rgb(var(--brand-rgb) / 0.22) 1.5px, transparent 1.5px);
   background-size: 28px 28px;
   pointer-events: none;
 }
@@ -2549,18 +2345,8 @@ a {
   }
 
   /* --- Search (16px keeps iOS from zooming the page on focus) --- */
-  .search-bar-placeholder,
-  .search-bar-inner input {
+  .search-bar-placeholder {
     font-size: 16px;
-  }
-  .search-results-card {
-    max-height: min(52dvh, 420px);
-  }
-  .search-result {
-    gap: 10px;
-  }
-  .search-result-formula {
-    min-width: 52px;
   }
 
   /* --- Detail panel --- */
@@ -2630,6 +2416,8 @@ a {
   --island-h: calc(34px * var(--k));
   /* The resting pill's width: four cells, three hairline gaps, and padding. */
   --island-w: calc(104px * var(--k));
+  /* The island's width when held open (see .dynamic-island-link-expanded). */
+  --island-open-w: calc(314px * var(--k));
   position: fixed;
   top: calc(10px + env(safe-area-inset-top));
   left: 0;
@@ -2676,8 +2464,8 @@ a {
 
 /* Held down: open into a larger rounded rectangle. */
 .dynamic-island-link-expanded .dynamic-island {
-  width: calc(314px * var(--k));
-  height: calc(84px * var(--k));
+  width: var(--island-open-w);
+  height: calc(160px * var(--k));
   border-radius: calc(26px * var(--k));
 }
 
@@ -2739,6 +2527,9 @@ a {
 /* The space below: the dark mode switch. Hidden (and unfocusable) until the
    island is open. */
 .island-controls {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4px * var(--k));
   width: calc(100% - 28px * var(--k));
   margin-top: calc(4px * var(--k));
   opacity: 0;
@@ -2871,7 +2662,9 @@ a {
   touch-action: manipulation;
 }
 
-.dynamic-island-link-expanded {
+/* Open or showing a message, the island grows past its own footprint and over
+   the calculator button beside it, so it has to sit above it. */
+.dynamic-island-link-raised {
   z-index: 3;
 }
 
@@ -2999,21 +2792,15 @@ a {
    black island and calculator button need a hairline to stay visible on it. */
 :root[data-theme='dark'] .aurora {
   background:
-    radial-gradient(ellipse 900px 700px at 12% 8%, rgba(115, 118, 245, 0.16), transparent 60%),
-    radial-gradient(ellipse 800px 800px at 88% 10%, rgba(96, 165, 250, 0.12), transparent 62%),
-    radial-gradient(ellipse 1000px 800px at 50% 105%, rgba(115, 118, 245, 0.12), transparent 65%),
+    radial-gradient(ellipse 900px 700px at 12% 8%, rgb(var(--brand-rgb) / 0.16), transparent 60%),
+    radial-gradient(ellipse 800px 800px at 88% 10%, rgb(var(--brand-a-rgb) / 0.12), transparent 62%),
+    radial-gradient(ellipse 1000px 800px at 50% 105%, rgb(var(--brand-rgb) / 0.12), transparent 65%),
     var(--bg-base);
 }
 
 :root[data-theme='dark'] .dynamic-island,
 :root[data-theme='dark'] .calculator-pull-tab {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), 0 6px 18px rgba(0, 0, 0, 0.5);
-}
-
-/* The light-ended brand gradient would wash out the white text on the search
-   answer cards, so they get a deeper one in dark. */
-:root[data-theme='dark'] .search-smart-answer {
-  background: linear-gradient(90deg, #3b6fd1 0%, #4f4fd8 55%, #5b45b8 100%);
 }
 
 /* ---------------- Theme switch ripple ---------------- */
@@ -3049,4 +2836,1104 @@ a {
 :root[data-theme-switching] .island-switch,
 :root[data-theme-switching] .island-switch::after {
   transition: none !important;
+}
+
+/* ---------------- Accent palettes ---------------- */
+
+/* Each accent sets the same handful of variables as the default (Iris) at the
+   top of this file: a light, a main and a deep stop for the gradient, the flat
+   accent, and the channel versions used by tints and shadows. The dark rules
+   lift the colors so they read on a dark page. They come after the theme rules
+   on purpose, and the [data-theme='dark'] pairs are more specific, so they win. */
+
+:root[data-accent='ember'] {
+  --brand-a: #ff9a3c;
+  --brand-b: #e4472b;
+  --brand-c: #8f1d1d;
+  --brand-color: #e4472b;
+  --brand-rgb: 228 71 43;
+  --brand-a-rgb: 255 154 60;
+}
+
+:root[data-accent='ember'][data-theme='dark'] {
+  --brand-a: #ffb066;
+  --brand-b: #f2683f;
+  --brand-c: #ffb4a0;
+  --brand-color: #f2683f;
+  --brand-rgb: 242 104 63;
+  --brand-a-rgb: 255 176 102;
+}
+
+:root[data-accent='forest'] {
+  --brand-a: #34d399;
+  --brand-b: #178a4a;
+  --brand-c: #0b4a2a;
+  --brand-color: #178a4a;
+  --brand-rgb: 23 138 74;
+  --brand-a-rgb: 52 211 153;
+}
+
+:root[data-accent='forest'][data-theme='dark'] {
+  --brand-a: #6ee7b7;
+  --brand-b: #2ea867;
+  --brand-c: #b7f0cf;
+  --brand-color: #2ea867;
+  --brand-rgb: 46 168 103;
+  --brand-a-rgb: 110 231 183;
+}
+
+:root[data-accent='rose'] {
+  --brand-a: #f472b6;
+  --brand-b: #db2777;
+  --brand-c: #831843;
+  --brand-color: #db2777;
+  --brand-rgb: 219 39 119;
+  --brand-a-rgb: 244 114 182;
+}
+
+:root[data-accent='rose'][data-theme='dark'] {
+  --brand-a: #f9a8d4;
+  --brand-b: #e8579c;
+  --brand-c: #fbcfe8;
+  --brand-color: #e8579c;
+  --brand-rgb: 232 87 156;
+  --brand-a-rgb: 249 168 212;
+}
+
+/* ---------------- Accent picker (inside the open island) ---------------- */
+
+/* The same tinted row as the dark mode switch: a label and, on the right, one
+   round swatch per accent. */
+.island-accent {
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--k));
+  width: 100%;
+  height: calc(32px * var(--k));
+  padding: 0 calc(10px * var(--k)) 0 calc(12px * var(--k));
+  border-radius: calc(16px * var(--k));
+  background: rgb(0 0 0 / 0.07);
+  color: #000;
+  font-size: calc(14px * var(--k));
+  font-weight: 600;
+}
+
+.island-accent-label {
+  flex: 1;
+  text-align: left;
+}
+
+.island-swatches {
+  display: flex;
+  align-items: center;
+  gap: calc(9px * var(--k));
+}
+
+.island-swatch {
+  flex-shrink: 0;
+  width: calc(20px * var(--k));
+  height: calc(20px * var(--k));
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--from), var(--to));
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.14);
+  cursor: pointer;
+  transition:
+    transform 0.25s cubic-bezier(0.34, 1.4, 0.64, 1),
+    box-shadow 0.2s ease;
+}
+
+.island-swatch:hover {
+  transform: scale(1.15);
+}
+
+.island-swatch:active {
+  transform: scale(0.93);
+}
+
+/* The chosen one gets a white gap and a ring in its own color. */
+.island-swatch[aria-checked='true'] {
+  box-shadow:
+    0 0 0 calc(2px * var(--k)) #fff,
+    0 0 0 calc(3.6px * var(--k)) var(--to);
+}
+
+.island-swatch:focus-visible {
+  outline: 2px solid #000;
+  outline-offset: calc(4px * var(--k));
+}
+
+:root[data-theme-switching] .island-swatch {
+  transition: none !important;
+}
+
+/* ---------------- Island status message ---------------- */
+
+/* The message sits over the top row, centered. It's always rendered (so its
+   width can be measured and screen readers hear changes) but invisible until
+   a status is showing. */
+.dynamic-island {
+  position: relative;
+}
+
+.island-status {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--k));
+  height: var(--island-h);
+  white-space: nowrap;
+  font-family: var(--font-sans);
+  font-size: calc(14px * var(--k));
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.island-status-icon {
+  display: flex;
+  color: var(--brand-a);
+}
+
+.island-status-icon svg {
+  width: calc(16px * var(--k));
+  height: calc(16px * var(--k));
+}
+
+.island-top {
+  transition: opacity 0.2s ease;
+}
+
+/* Showing a message: the pill widens to fit it, the time steps aside and the
+   message fades in a beat later. */
+.dynamic-island-link-status .dynamic-island {
+  width: max(var(--island-w), calc(var(--status-w) + 34px * var(--k)));
+}
+
+.dynamic-island-link-status .island-top {
+  opacity: 0;
+}
+
+.dynamic-island-link-status .island-status {
+  opacity: 1;
+  transition: opacity 0.25s ease 0.12s;
+}
+
+/* ---------------- First-visit hint ---------------- */
+
+@keyframes island-hint-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(var(--brand-rgb) / 0.55);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 calc(12px * var(--k)) rgb(var(--brand-rgb) / 0);
+  }
+}
+
+.dynamic-island-link-hinting .island-anchor::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  animation: island-hint-pulse 1.8s ease-out infinite;
+}
+
+.island-hint-slot {
+  position: absolute;
+  top: calc(100% + 10px * var(--k));
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.island-hint {
+  display: block;
+  padding: calc(7px * var(--k)) calc(14px * var(--k));
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg-base);
+  font-family: var(--font-sans);
+  font-size: calc(13px * var(--k));
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+}
+
+/* A little notch pointing up at the island. */
+.island-hint::before {
+  content: '';
+  position: absolute;
+  top: calc(-4px * var(--k));
+  left: 50%;
+  width: calc(10px * var(--k));
+  height: calc(10px * var(--k));
+  background: inherit;
+  border-radius: 2px;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dynamic-island-link-hinting .island-anchor::before {
+    animation: none;
+  }
+}
+
+/* ---------------- Copy LaTeX button (formula detail) ---------------- */
+
+.detail-copy {
+  position: absolute;
+  top: 18px;
+  right: 58px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgb(var(--tint-black) / 0.08);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.detail-copy:hover {
+  background: rgb(var(--tint-black) / 0.14);
+  color: var(--brand-color);
+}
+
+.detail-copy svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 640px) {
+  .detail-copy {
+    top: 14px;
+    right: 54px;
+  }
+}
+
+/* ---------------- Search bar shortcut chip ---------------- */
+
+.search-kbd {
+  flex-shrink: 0;
+  padding: 3px 7px;
+  border-radius: 7px;
+  border: 1px solid rgb(var(--tint-ink) / 0.14);
+  background: rgb(var(--tint-black) / 0.05);
+  color: var(--ink-soft);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Shown at every window width — a narrow desktop window has a keyboard too.
+   Hidden only on phones and tablets (a touch screen with no hover), where there
+   is no shortcut to press. */
+@media (hover: none) and (pointer: coarse) {
+  .search-kbd {
+    display: none;
+  }
+}
+
+/* ---------------- Command palette ---------------- */
+
+.cmdk-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 14vh 16px 0;
+  background: rgba(60, 64, 90, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.cmdk {
+  width: min(620px, 100%);
+  border-radius: 22px;
+  overflow: hidden;
+  /* Much more opaque than the usual glass: with the results faded out, a
+     see-through frame would all but vanish while it shrinks back to the bar.
+     (Declared after .glass, so it wins; the blur behind it stays.) */
+  background: var(--cmdk-bg);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 28px 70px rgba(20, 22, 40, 0.35);
+}
+
+/* The content is always laid out at the palette's final width (set inline), so
+   while the frame around it grows or shrinks it is only ever clipped — never
+   reflowed. */
+.cmdk-inner {
+  display: flex;
+  flex-direction: column;
+}
+
+.cmdk-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cmdk-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 18px;
+  border-bottom: 1px solid rgb(var(--tint-ink) / 0.1);
+}
+
+.cmdk-search-icon {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+  color: var(--ink-soft);
+}
+
+.cmdk-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.cmdk-input::placeholder {
+  color: var(--ink-soft);
+}
+
+.cmdk-kbd,
+.cmdk-foot kbd {
+  display: inline-block;
+  min-width: 20px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid rgb(var(--tint-ink) / 0.16);
+  background: rgb(var(--tint-black) / 0.05);
+  color: var(--ink-soft);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.cmdk-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 8px 8px;
+}
+
+.cmdk-group {
+  padding: 12px 12px 5px;
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cmdk-empty {
+  padding: 28px 12px;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.cmdk-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cmdk-item[data-active='true'] {
+  background: var(--brand-soft);
+  box-shadow: inset 0 0 0 1px rgb(var(--brand-rgb) / 0.28);
+}
+
+.cmdk-lead {
+  flex-shrink: 0;
+  width: 104px;
+  display: flex;
+  justify-content: center;
+  font-size: 15px;
+}
+
+/* Keep a formula on one line — KaTeX would otherwise break after the "=". */
+.cmdk-lead .katex {
+  white-space: nowrap;
+}
+
+.cmdk-glyph {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: rgb(var(--tint-black) / 0.07);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.cmdk-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--from), var(--to));
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.14);
+}
+
+.cmdk-text {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cmdk-title {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmdk-sub {
+  color: var(--ink-soft);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A worked answer stands out: bigger, in the accent color. */
+.cmdk-item-answer .cmdk-title {
+  color: var(--brand-color);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.cmdk-enter {
+  flex-shrink: 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.cmdk-foot {
+  display: flex;
+  gap: 18px;
+  padding: 10px 18px;
+  border-top: 1px solid rgb(var(--tint-ink) / 0.1);
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.cmdk-foot span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+@media (max-width: 640px) {
+  .cmdk-scrim {
+    padding-top: 72px;
+  }
+  .cmdk-foot {
+    display: none;
+  }
+  .cmdk-lead {
+    width: 84px;
+  }
+}
+
+/* With a formula open, the clock and its messages sit above the blurred
+   backdrop so they stay sharp. Nothing in the bar is clickable then — a click
+   there passes through to the backdrop and closes the formula, as anywhere
+   else outside the panel. */
+:root[data-detail-open] .top-bar {
+  z-index: 52;
+}
+
+:root[data-detail-open] .top-bar * {
+  pointer-events: none !important;
+}
+
+/* ---------------- Calculator button makes room ---------------- */
+
+/* When the island grows (held open, or showing a message) it grows evenly to
+   both sides of its own center, so the calculator button beside it slides
+   right by exactly half the growth — keeping the same gap from the island's
+   edge instead of being covered. It uses the same duration and easing as the
+   island's width, so the two move as one. (`translate` is its own property,
+   so it doesn't fight the entrance animation's transform.) */
+.top-bar-button-slot {
+  translate: 0 0;
+  transition: translate 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dynamic-island-link-expanded ~ .top-bar-button-slot {
+  translate: calc((var(--island-open-w) - var(--island-w)) / 2) 0;
+}
+
+.dynamic-island-link-status ~ .top-bar-button-slot {
+  translate: calc((max(var(--island-w), var(--status-w) + 34px * var(--k)) - var(--island-w)) / 2) 0;
+}
+
+/* The search bar (or button) the command palette grows out of is hidden while
+   the palette is out, so the two read as one element that moved. The element
+   keeps its space, so nothing on the page shifts. */
+[data-away] {
+  visibility: hidden;
+}
+
+/* The palette's calculator answer, styled like a worked formula answer. */
+.cmdk-item-calc .cmdk-title {
+  color: var(--brand-color);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.cmdk-item-calc .cmdk-glyph {
+  background: var(--brand-soft);
+  color: var(--brand-color);
+  font-size: 18px;
+}
+
+/* ---------------- Timer ---------------- */
+
+/* Running, a badge appears at the pill's left: whole minutes left inside a ring
+   that drains over each minute. The pill widens by the badge's width (the
+   clock keeps its own room), and the calculator button slides over with it. */
+.top-bar {
+  --island-badge: calc(20px * var(--k));
+}
+
+.island-timer {
+  position: absolute;
+  top: 50%;
+  left: calc(4px * var(--k));
+  width: calc(26px * var(--k));
+  height: calc(26px * var(--k));
+  transform: translateY(-50%) scale(0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dynamic-island-link-timer .island-timer {
+  opacity: 1;
+  transform: translateY(-50%);
+  transition: opacity 0.25s ease 0.12s, transform 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.12s;
+}
+
+.island-timer-text {
+  font-family: var(--font-display);
+  font-size: calc(13px * var(--k));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.island-timer-text[data-long] {
+  font-size: calc(10.5px * var(--k));
+}
+
+.island-timer-is-paused .island-timer-text {
+  opacity: 0.55;
+}
+
+.dynamic-island-link-timer .dynamic-island {
+  width: calc(var(--island-w) + var(--island-badge));
+}
+
+.dynamic-island-link-timer .island-top {
+  padding-left: var(--island-badge);
+  box-sizing: border-box;
+}
+
+.island-top {
+  transition: opacity 0.2s ease, padding-left 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dynamic-island-link-timer ~ .top-bar-button-slot {
+  translate: calc(var(--island-badge) / 2) 0;
+}
+
+/* The ring: a faint full circle with the accent-colored arc on top, starting
+   at 12 o'clock and shortening clockwise. */
+.island-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+
+.island-ring circle {
+  fill: none;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+.island-ring-track {
+  stroke: rgb(128 128 128 / 0.32);
+}
+
+.island-ring-arc {
+  stroke: var(--brand-a);
+  transition: stroke-dasharray 0.3s linear, stroke 0.3s ease, opacity 0.2s ease;
+}
+
+.island-timer-is-paused .island-ring-arc {
+  stroke: rgb(128 128 128 / 0.75);
+}
+
+/* The open island's timer row: the same tinted row as the others. */
+.island-timer-row {
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--k));
+  width: 100%;
+  height: calc(32px * var(--k));
+  padding: 0 calc(8px * var(--k)) 0 calc(12px * var(--k));
+  border-radius: calc(16px * var(--k));
+  background: rgb(0 0 0 / 0.07);
+  color: #000;
+  font-size: calc(14px * var(--k));
+  font-weight: 600;
+}
+
+.island-timer-label {
+  flex: 1;
+  text-align: left;
+}
+
+.island-timer-presets,
+.island-timer-buttons {
+  display: flex;
+  align-items: center;
+  gap: calc(5px * var(--k));
+}
+
+.island-timer-preset {
+  height: calc(22px * var(--k));
+  padding: 0 calc(9px * var(--k));
+  border: none;
+  border-radius: 999px;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+  font: inherit;
+  font-size: calc(12px * var(--k));
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.island-timer-preset:hover {
+  background: var(--brand-color);
+  color: #fff;
+}
+
+.island-timer-preset:active {
+  transform: scale(0.94);
+}
+
+.island-timer-info {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: calc(8px * var(--k));
+}
+
+.island-timer-readout {
+  font-family: var(--font-display);
+  font-size: calc(17px * var(--k));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.island-timer-caption {
+  font-size: calc(11px * var(--k));
+  font-weight: 600;
+  opacity: 0.55;
+}
+
+.island-timer-btn {
+  width: calc(22px * var(--k));
+  height: calc(22px * var(--k));
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.island-timer-btn:hover {
+  background: var(--brand-color);
+  color: #fff;
+}
+
+.island-timer-btn:active {
+  transform: scale(0.92);
+}
+
+.island-timer-btn svg {
+  width: 56%;
+  height: 56%;
+}
+
+.island-timer-preset:focus-visible,
+.island-timer-btn:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: 2px;
+}
+
+/* ---------------- Closing the island ---------------- */
+
+/* Opening keeps its quick ease-out spring; closing gets a softer, longer
+   curve, so the pill settles back rather than snapping in at the start. The
+   controls vanish first, before the shrinking pill can squeeze past them, and
+   the calculator button slides back on the very same curve as the pill. */
+.dynamic-island {
+  transition:
+    width 0.55s cubic-bezier(0.45, 0, 0.15, 1),
+    height 0.55s cubic-bezier(0.45, 0, 0.15, 1),
+    border-radius 0.55s cubic-bezier(0.45, 0, 0.15, 1),
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+.dynamic-island-link-expanded .dynamic-island {
+  transition:
+    width 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.island-controls {
+  transition: opacity 0.12s ease, transform 0.25s ease, visibility 0s linear 0.25s;
+}
+
+.island-top {
+  transition: opacity 0.2s ease, padding-left 0.55s cubic-bezier(0.45, 0, 0.15, 1);
+}
+
+.top-bar-button-slot {
+  transition: translate 0.55s cubic-bezier(0.45, 0, 0.15, 1);
+}
+
+.dynamic-island-link-expanded ~ .top-bar-button-slot {
+  transition: translate 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------------- Custom timer dial ---------------- */
+
+@keyframes island-dial-in {
+  from { opacity: 0; transform: translateY(calc(6px * var(--k))); }
+  to { opacity: 1; transform: none; }
+}
+
+.island-dial {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4px * var(--k));
+  width: 100%;
+  animation: island-dial-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.island-dial-window {
+  position: relative;
+  height: calc(62px * var(--k));
+  overflow: hidden;
+  border-radius: calc(14px * var(--k));
+  cursor: grab;
+  touch-action: none;
+  outline: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent);
+}
+
+.island-dial-window:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--brand-color);
+}
+
+.island-dial-dragging {
+  cursor: grabbing;
+}
+
+/* The strip's origin is the window's center, so the picked minute sits under
+   the marker. Ticks hang from the bottom; every fifth is taller and labeled. */
+.island-dial-strip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+}
+
+.island-dial-tick {
+  position: absolute;
+  bottom: calc(14px * var(--k));
+  width: calc(1.6px * var(--k));
+  height: calc(17px * var(--k));
+  margin-left: calc(-0.8px * var(--k));
+  border-radius: 1px;
+  background: var(--brand-color);
+  opacity: calc(0.55 * var(--f, 1));
+  /* Ticks shrink toward the ruler's middle line as they turn away. */
+  transform-origin: 50% 0;
+}
+
+.island-dial-tick-major {
+  height: calc(28px * var(--k));
+  opacity: var(--f, 1);
+  transform-origin: 50% calc(11px * var(--k));
+}
+
+.island-dial-tick-major::before {
+  content: attr(data-label);
+  position: absolute;
+  bottom: calc(100% + 3px * var(--k));
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgb(0 0 0 / 0.55);
+  font-family: var(--font-display);
+  font-size: calc(11px * var(--k));
+  font-weight: 700;
+  font-style: normal;
+  line-height: 1;
+}
+
+.island-dial-marker {
+  position: absolute;
+  bottom: calc(3px * var(--k));
+  left: 50%;
+  width: 0;
+  height: 0;
+  margin-left: calc(-5px * var(--k));
+  border-left: calc(5px * var(--k)) solid transparent;
+  border-right: calc(5px * var(--k)) solid transparent;
+  border-bottom: calc(8px * var(--k)) solid var(--brand-color);
+  pointer-events: none;
+}
+
+.island-dial-row {
+  display: flex;
+  align-items: center;
+  gap: calc(6px * var(--k));
+  height: calc(34px * var(--k));
+}
+
+.island-dial-back,
+.island-dial-start {
+  border: none;
+  cursor: pointer;
+  background: var(--brand-soft);
+  color: var(--brand-color);
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.island-dial-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: calc(26px * var(--k));
+  height: calc(26px * var(--k));
+  padding: 0;
+  border-radius: 50%;
+}
+
+.island-dial-back svg {
+  width: 60%;
+  height: 60%;
+}
+
+.island-dial-start {
+  height: calc(28px * var(--k));
+  padding: 0 calc(14px * var(--k));
+  border-radius: 999px;
+  font: inherit;
+  font-size: calc(13px * var(--k));
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.island-dial-back:hover,
+.island-dial-start:hover {
+  background: var(--brand-color);
+  color: #fff;
+}
+
+.island-dial-back:active,
+.island-dial-start:active {
+  transform: scale(0.95);
+}
+
+.island-dial-back:focus-visible,
+.island-dial-start:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: 2px;
+}
+
+.island-dial-readout {
+  flex: 1;
+  text-align: right;
+  color: var(--brand-color);
+  font-family: var(--font-display);
+  font-size: calc(24px * var(--k));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Breathing room above the dial, so it sits centered in the space below the
+   clock rather than hugging it. */
+.island-dial {
+  margin-top: calc(9px * var(--k));
+}
+
+/* The rows below the clock sit centered in the space under it; the dial
+   already carries its own top margin, so it takes only a little on top of it. */
+.island-controls {
+  margin-top: calc(11px * var(--k));
+}
+
+.island-dial {
+  margin-top: calc(2px * var(--k));
+}
+
+/* Up to and including the picked minute the ticks glow in the accent color;
+   past it they rest in a soft grey. The sides of the disk blur as they turn
+   away (--b grows with the angle). */
+.island-dial-tick {
+  background: rgb(110 110 128);
+  opacity: calc(0.4 * var(--f, 1));
+  filter: blur(calc(var(--b, 0) * 3px * var(--k)));
+}
+
+.island-dial-tick-major {
+  opacity: calc(0.65 * var(--f, 1));
+}
+
+.island-dial-tick.island-dial-tick-on {
+  background: var(--brand-color);
+  box-shadow: 0 0 calc(6px * var(--k)) rgb(var(--brand-rgb) / 0.6);
+  opacity: calc(0.85 * var(--f, 1));
+}
+
+.island-dial-tick-major.island-dial-tick-on {
+  opacity: var(--f, 1);
+}
+
+.island-dial-tick-major::before {
+  color: rgb(0 0 0 / 0.38);
+}
+
+.island-dial-tick-major.island-dial-tick-on::before {
+  color: var(--brand-color);
+}
+
+/* Buttons on a status message ("Time's up" -> +5 min, Dismiss). The message
+   itself ignores the pointer; only these take clicks, and only while shown. */
+.island-status-action {
+  height: calc(20px * var(--k));
+  margin-left: calc(2px * var(--k));
+  padding: 0 calc(9px * var(--k));
+  border: none;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.16);
+  color: inherit;
+  font: inherit;
+  font-size: calc(12px * var(--k));
+  font-weight: 700;
+  letter-spacing: 0;
+  cursor: pointer;
+  pointer-events: none;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.island-status-action:first-of-type {
+  background: var(--brand-color);
+  color: #fff;
+}
+
+.dynamic-island-link-status .island-status-action {
+  pointer-events: auto;
+}
+
+.island-status-action:hover {
+  background: #fff;
+  color: #000;
+}
+
+.island-status-action:active {
+  transform: scale(0.94);
+}
+
+.island-status-action:focus-visible {
+  outline: 2px solid var(--brand-a);
+  outline-offset: 2px;
+}
+
+/* The pill flips to white on hover, so the quieter button needs a dark tint. */
+.dynamic-island-link:hover .island-status-action:not(:first-of-type) {
+  background: rgb(0 0 0 / 0.1);
+}
+
+.dynamic-island-link:hover .island-status-action:not(:first-of-type):hover {
+  background: #000;
+  color: #fff;
+}
+
+/* The message sits above the (invisible) clock row, so its buttons — not the
+   home link underneath — receive the clicks. */
+.island-status {
+  z-index: 2;
 }

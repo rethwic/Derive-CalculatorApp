@@ -1,19 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Katex } from './Katex';
-import { searchFormulas } from '../lib/search';
-import { parseSmartQuery, type SmartQueryResult } from '../lib/smartQuery';
-import { formulas } from '../data/formulas';
-import { categoryMap } from '../data/categories';
-import { useDetail } from '../context/DetailContext';
-
-// Mirrors FormulaCalculator's own number formatting so a smart-search
-// answer and the same value found by hand in the calculator read
-// identically.
-function formatValue(n: number): string {
-  if (n !== 0 && (Math.abs(n) < 1e-4 || Math.abs(n) >= 1e9)) return n.toExponential(4);
-  return String(Number(n.toPrecision(6)));
-}
+import { openCommandPalette } from './CommandPalette';
 
 function SearchIcon() {
   return (
@@ -24,259 +9,32 @@ function SearchIcon() {
   );
 }
 
-const RESULTS_GAP = 12;
-
-function expandedTarget() {
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const isPhone = vw <= 640;
-  const width = Math.min(600, vw - (isPhone ? 32 : 48));
-  // On a phone the keyboard covers the lower half of the screen, so the bar
-  // (and the results hanging off it) sits near the top instead.
-  return { left: (vw - width) / 2, top: isPhone ? 64 : vh * 0.32, width };
-}
-
+// The search bar on the landing and subject pages. It isn't an input any more:
+// it's the doorway to the command palette (the same one Ctrl/⌘ + K opens), so
+// there's a single search experience across the site.
 export function GlobalSearch() {
-  const [query, setQuery] = useState('');
-  const [expanded, setExpanded] = useState(false);
-  // Separate from `expanded`: stays true for the whole time the expanded bar
-  // is visually present, including its exit animation. `expanded` alone
-  // isn't enough — it flips false the instant you click out, which used to
-  // make the resting trigger reappear immediately while the panel was still
-  // sliding back to that exact spot, reading as two overlapping bars.
-  const [triggerHidden, setTriggerHidden] = useState(false);
-  const [origin, setOrigin] = useState<DOMRect | null>(null);
-  const restRef = useRef<HTMLDivElement>(null);
-  const { openDetail } = useDetail();
-
-  const smart = useMemo<SmartQueryResult[]>(() => parseSmartQuery(query), [query]);
-  const results = useMemo(
-    () => searchFormulas(formulas, query)
-      .filter((h) => !smart.some((s) => s.formula.id === h.formula.id && s.variantIndex === h.variantIndex))
-      .slice(0, 10),
-    [query, smart],
-  );
-  const showResults = expanded && query.trim().length > 0;
-
-  function openExpanded() {
-    if (restRef.current) setOrigin(restRef.current.getBoundingClientRect());
-    setTriggerHidden(true);
-    setExpanded(true);
-  }
-
-  function closeExpanded() {
-    setExpanded(false);
-    setQuery('');
-    // triggerHidden is cleared by AnimatePresence's onExitComplete below,
-    // once the bar has actually finished animating back to origin.
-  }
-
-  const target = expandedTarget();
-
   return (
     <div className="global-search">
-      {/* The resting trigger — not a real input, just what you click to
-          physically expand the bar into place. Kept in the layout (just
-          invisible) while expanded, so nothing else on the page shifts. */}
       <div
-        ref={restRef}
         className="search-bar glass"
-        style={{ visibility: triggerHidden ? 'hidden' : 'visible', cursor: 'pointer' }}
+        style={{ cursor: 'pointer' }}
         role="button"
         tabIndex={0}
         aria-label="Search formulas, symbols, topics"
-        onClick={openExpanded}
+        onClick={(e) => openCommandPalette('search', e.currentTarget)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            openExpanded();
+            openCommandPalette('search', e.currentTarget);
           }
         }}
       >
         <SearchIcon />
         <span className="search-bar-placeholder">Search formulas, symbols, topics…</span>
+        <kbd className="search-kbd" aria-hidden="true">
+          {/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘K' : 'Ctrl K'}
+        </kbd>
       </div>
-
-      <AnimatePresence onExitComplete={() => setTriggerHidden(false)}>
-        {expanded && origin && (
-          <>
-            <motion.div
-              className="search-scrim"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={closeExpanded}
-            />
-
-            {/* The bar: only left/top/width/borderRadius are animated —
-                height is fixed at origin.height throughout, matching the
-                resting trigger's own font/padding exactly, so the box
-                never grows taller than its content actually needs. That
-                mismatch (an arbitrary taller target height than the
-                content's real size) was what read as "out of shape". */}
-            <motion.div
-              className="search-expand-panel glass"
-              initial={{
-                left: origin.left,
-                top: origin.top,
-                width: origin.width,
-                height: origin.height,
-                borderRadius: 999,
-              }}
-              animate={{
-                left: target.left,
-                top: target.top,
-                width: target.width,
-                height: origin.height,
-                borderRadius: 999,
-              }}
-              exit={{
-                left: origin.left,
-                top: origin.top,
-                width: origin.width,
-                height: origin.height,
-                borderRadius: 999,
-                transition: { duration: 0.22 },
-              }}
-              transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-            >
-              <div className="search-bar-inner">
-                <SearchIcon />
-                <input
-                  autoFocus
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') closeExpanded();
-                  }}
-                  placeholder="Search formulas, symbols, topics…"
-                  spellCheck={false}
-                  autoComplete="off"
-                />
-                {query && (
-                  <button
-                    type="button"
-                    className="search-clear"
-                    aria-label="Clear search"
-                    onClick={() => setQuery('')}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Results: a completely separate card, positioned just below the
-          bar's fixed target spot. It grows/shrinks/fades on its own as the
-          result count changes — fully decoupled from the bar above, so
-          retyping never causes the bar itself to visibly reform. */}
-      <AnimatePresence>
-        {showResults && origin && (
-          <motion.div
-            className="search-results-card glass"
-            layout
-            style={{ left: target.left, top: target.top + origin.height + RESULTS_GAP, width: target.width }}
-            initial={{ opacity: 0, y: -8, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.98 }}
-            transition={{ duration: 0.18 }}
-          >
-            {smart.length === 0 && results.length === 0 ? (
-              <div className="search-empty">No formulas found</div>
-            ) : (
-              <>
-                {smart.map((s) =>
-                  s.kind === 'answer' ? (
-                    <button
-                      key={`answer-${s.formula.id}-${s.variantIndex ?? 'base'}`}
-                      type="button"
-                      className="search-smart-answer"
-                      onClick={(e) => {
-                        openDetail(s.formula, e.currentTarget.getBoundingClientRect(), s.prefill, s.variantIndex);
-                        closeExpanded();
-                      }}
-                    >
-                      <div className="search-smart-answer-value">
-                        {s.targetSymbol} ≈ {formatValue(s.value)}
-                        {s.targetUnit ? ` ${s.targetUnit}` : ''}
-                      </div>
-                      <div className="search-smart-answer-source">
-                        <Katex math={s.latex} />
-                        <span>{s.title}</span>
-                      </div>
-                      {s.knowns.length > 0 && (
-                        <div className="search-smart-answer-knowns">
-                          Using{' '}
-                          {s.knowns.map((k, i) => (
-                            <span key={k.symbol}>
-                              {i > 0 ? ', ' : ''}
-                              {k.symbol} = {formatValue(k.value)}
-                              {k.unit ? ` ${k.unit}` : ''}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </button>
-                  ) : (
-                    <button
-                      key={`match-${s.formula.id}-${s.variantIndex ?? 'base'}`}
-                      type="button"
-                      className="search-result search-result-smart"
-                      onClick={(e) => {
-                        openDetail(s.formula, e.currentTarget.getBoundingClientRect(), s.prefill, s.variantIndex);
-                        closeExpanded();
-                      }}
-                    >
-                      <span className="search-result-formula">
-                        <Katex math={s.latex} />
-                      </span>
-                      <span className="search-result-meta">
-                        <span className="search-result-title">{s.title}</span>
-                        {s.targetMeaning && (
-                          <span className="search-result-badge">Solve for {s.targetMeaning.toLowerCase()}</span>
-                        )}
-                      </span>
-                    </button>
-                  ),
-                )}
-                <AnimatePresence initial={false}>
-                  {results.map((h) => {
-                    const cat = categoryMap[h.formula.category];
-                    return (
-                      <motion.button
-                        key={`${h.formula.id}-${h.variantIndex ?? 'base'}`}
-                        layout
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ layout: { duration: 0.18 }, opacity: { duration: 0.12 } }}
-                        type="button"
-                        className="search-result"
-                        onClick={(e) => {
-                          openDetail(h.formula, e.currentTarget.getBoundingClientRect(), undefined, h.variantIndex);
-                          closeExpanded();
-                        }}
-                      >
-                        <span className="search-result-formula">
-                          <Katex math={h.latex} />
-                        </span>
-                        <span className="search-result-meta">
-                          <span className="search-result-title">{h.title}</span>
-                          <span className="search-result-category">{cat.name}</span>
-                        </span>
-                      </motion.button>
-                    );
-                  })}
-                </AnimatePresence>
-              </>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

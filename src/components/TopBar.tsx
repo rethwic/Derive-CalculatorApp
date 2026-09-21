@@ -38,6 +38,17 @@ export function TopBar() {
     return () => window.removeEventListener('resize', measure);
   }, [open]);
 
+  // The button may have been mid-slide (island still open) when it was clicked;
+  // measure again once it has settled, so the panel shrinks back into the
+  // button's true resting place.
+  useEffect(() => {
+    if (!open) return;
+    const timer = window.setTimeout(() => {
+      if (buttonRef.current) setOrigin(buttonRef.current.getBoundingClientRect());
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [open]);
+
   function openCalculator() {
     if (buttonRef.current) setOrigin(buttonRef.current.getBoundingClientRect());
     setActive(true);
