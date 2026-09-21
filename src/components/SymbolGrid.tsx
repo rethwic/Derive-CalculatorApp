@@ -67,7 +67,31 @@ export function SymbolGrid() {
 
     recomputePositions();
     window.addEventListener('resize', recomputePositions);
-    return () => window.removeEventListener('resize', recomputePositions);
+
+    // Tracked on the window rather than on the grid element: the grid sits
+    // behind everything, so a listener on it stops hearing the mouse (and
+    // even sees it "leave") the moment the cursor passes over anything in
+    // front of it — the clock at the top, the search bar, the subject buttons.
+    // The spotlight should follow the cursor no matter what it's over.
+    const onPointerMove = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return;
+      focal.current = { x: e.clientX, y: e.clientY };
+      scheduleUpdate();
+    };
+    const onPointerLeave = () => {
+      focal.current = null;
+      scheduleUpdate();
+    };
+    window.addEventListener('pointermove', onPointerMove);
+    document.documentElement.addEventListener('pointerleave', onPointerLeave);
+
+    return () => {
+      window.removeEventListener('resize', recomputePositions);
+      window.removeEventListener('pointermove', onPointerMove);
+      document.documentElement.removeEventListener('pointerleave', onPointerLeave);
+    };
+    // scheduleUpdate/update only read refs, so the first render's copies stay valid.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function update() {
@@ -103,25 +127,8 @@ export function SymbolGrid() {
     });
   }
 
-  function handlePointerMove(e: React.PointerEvent) {
-    if (e.pointerType !== 'mouse') return;
-    focal.current = { x: e.clientX, y: e.clientY };
-    scheduleUpdate();
-  }
-
-  function handlePointerLeave() {
-    focal.current = null;
-    scheduleUpdate();
-  }
-
   return (
-    <div
-      ref={containerRef}
-      className="symbol-grid"
-      aria-hidden="true"
-      onPointerMove={handlePointerMove}
-      onPointerLeave={handlePointerLeave}
-    >
+    <div ref={containerRef} className="symbol-grid" aria-hidden="true">
       {GRID.map((cell, i) => (
         <span
           key={i}

@@ -23,7 +23,40 @@
   --brand-color: var(--brand-b);
   --brand-soft: rgba(79, 70, 229, 0.14);
 
+  /* Tokens that flip with the theme. --surface-k scales every translucent
+     white surface (1 = as designed for light; low in dark, where a bright wash
+     would glare). --tint-* is the color of hover washes and hairlines: dark
+     ink on light, near-white on dark. */
+  --surface-k: 1;
+  --tint-black: 0 0 0;
+  --tint-ink: 28 28 30;
+  --panel-bg: rgba(248, 248, 252, 0.96);
+
   color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg-base: #0d0e13;
+  --ink: #ececf1;
+  --ink-soft: rgba(236, 236, 241, 0.58);
+  --glass-fill: rgba(30, 32, 46, 0.5);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-highlight: rgba(255, 255, 255, 0.08);
+  --glass-shadow: rgba(0, 0, 0, 0.5);
+
+  /* The brand indigo, lifted so it reads on a dark page; the title's
+     gradient ends light instead of navy for the same reason. */
+  --brand-a: #7cb4ff;
+  --brand-b: #7376f5;
+  --brand-c: #c4b5fd;
+  --brand-color: #7376f5;
+  --brand-soft: rgba(115, 118, 245, 0.22);
+
+  --surface-k: 0.2;
+  --tint-black: 255 255 255;
+  --tint-ink: 236 236 241;
+  --panel-bg: rgba(20, 22, 31, 0.96);
 }
 
 * {
@@ -35,6 +68,19 @@ body,
 #root {
   min-height: 100%;
   margin: 0;
+}
+
+/* No scrollbars anywhere — scrolling itself (wheel, trackpad, touch, keys)
+   still works everywhere; only the bar is hidden. With none drawn, no page's
+   width changes depending on whether it scrolls, so centered elements like
+   the top bar can't shift between pages. */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
 }
 
 body {
@@ -156,7 +202,7 @@ a {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55), 0 -1px 1px rgba(255, 255, 255, 0.35);
+  text-shadow: 0 1px 0 rgb(255 255 255 / calc(0.55 * var(--surface-k))), 0 -1px 1px rgb(255 255 255 / calc(0.35 * var(--surface-k)));
   filter: drop-shadow(0 24px 48px rgba(79, 70, 229, 0.24));
   cursor: default;
   animation: landing-title-flow 10s ease-in-out infinite, landing-title-breathe 7s ease-in-out infinite;
@@ -300,7 +346,7 @@ a {
 }
 
 .search-clear {
-  background: rgba(0, 0, 0, 0.08);
+  background: rgb(var(--tint-black) / 0.08);
   border: none;
   color: var(--ink);
   width: 20px;
@@ -316,7 +362,7 @@ a {
 }
 
 .search-clear:hover {
-  background: rgba(0, 0, 0, 0.14);
+  background: rgb(var(--tint-black) / 0.14);
 }
 
 /* A dim scrim behind the panel — click it (or Escape) to collapse the bar
@@ -392,7 +438,7 @@ a {
 }
 
 .search-result:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgb(var(--tint-black) / 0.05);
 }
 
 .search-result-formula {
@@ -543,15 +589,6 @@ a {
   margin-bottom: 48px;
 }
 
-.subject-page-home {
-  padding: 10px 18px;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 14px;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
 .subject-switcher {
   display: flex;
   gap: 8px;
@@ -567,13 +604,13 @@ a {
   font-weight: 600;
   color: var(--ink-soft);
   text-decoration: none;
-  background: rgba(0, 0, 0, 0.045);
+  background: rgb(var(--tint-black) / 0.045);
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
 
 .subject-pill:hover {
-  background: rgba(0, 0, 0, 0.08);
+  background: rgb(var(--tint-black) / 0.08);
 }
 
 .subject-pill-active {
@@ -595,7 +632,19 @@ a {
   max-width: 300px;
 }
 
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .subject-page-title {
+  animation: rise-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.12s backwards;
   position: relative;
   padding: 8px 0 28px;
 }
@@ -652,18 +701,6 @@ a {
   max-width: 640px;
   margin: 0 auto;
   padding: 88px 24px 100px;
-}
-
-.contact-back {
-  position: fixed;
-  top: 24px;
-  left: 24px;
-  padding: 10px 18px;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 14px;
-  text-decoration: none;
-  color: var(--ink);
 }
 
 .contact-hero {
@@ -748,13 +785,13 @@ a {
 
 .contact-field input,
 .contact-field textarea {
-  border: 1px solid rgba(28, 28, 30, 0.12);
+  border: 1px solid rgb(var(--tint-ink) / 0.12);
   border-radius: 12px;
   padding: 11px 14px;
   font-size: 14px;
   font-family: inherit;
   color: var(--ink);
-  background: rgba(255, 255, 255, 0.6);
+  background: rgb(255 255 255 / calc(0.6 * var(--surface-k)));
   outline: none;
   resize: vertical;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -786,9 +823,9 @@ a {
   align-items: center;
   gap: 8px;
   padding: 12px 14px;
-  border: 1.5px solid rgba(28, 28, 30, 0.1);
+  border: 1.5px solid rgb(var(--tint-ink) / 0.1);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.5);
+  background: rgb(255 255 255 / calc(0.5 * var(--surface-k)));
   color: var(--ink-soft);
   font-size: 13.5px;
   font-weight: 600;
@@ -883,10 +920,6 @@ a {
   .contact-page {
     padding-top: 76px;
   }
-  .contact-back {
-    top: 14px;
-    left: 14px;
-  }
   .contact-form {
     padding: 22px;
   }
@@ -910,7 +943,24 @@ a {
 
 /* ---------------- Formula grid card ---------------- */
 
+/* Cards rise in one after another (--i is their position, capped so long
+   lists don't take forever). Fill mode is "backwards" on purpose: it holds the
+   hidden starting frame during each card's delay but lets go afterward, so the
+   hover lift below isn't overridden by a lingering animation transform. */
+@keyframes fgc-rise {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .fgc {
+  animation: fgc-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(0.18s + var(--i, 0) * 0.04s);
   position: relative;
   overflow: hidden;
   display: flex;
@@ -966,7 +1016,7 @@ a {
   height: 26px;
   border-radius: 50%;
   border: 1px solid var(--glass-border);
-  background: rgba(255, 255, 255, 0.6);
+  background: rgb(255 255 255 / calc(0.6 * var(--surface-k)));
   color: var(--brand-color);
   display: flex;
   align-items: center;
@@ -985,7 +1035,7 @@ a {
 .fgc-add:hover,
 .fgc-add:focus-visible {
   opacity: 1;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgb(255 255 255 / calc(0.9 * var(--surface-k)));
 }
 
 .fgc-add:active {
@@ -1047,7 +1097,7 @@ a {
   height: 32px;
   border-radius: 50%;
   border: none;
-  background: rgba(0, 0, 0, 0.08);
+  background: rgb(var(--tint-black) / 0.08);
   color: var(--ink);
   font-size: 18px;
   cursor: pointer;
@@ -1058,7 +1108,7 @@ a {
 }
 
 .detail-close:hover {
-  background: rgba(0, 0, 0, 0.14);
+  background: rgb(var(--tint-black) / 0.14);
 }
 
 .detail-category {
@@ -1079,7 +1129,7 @@ a {
 .detail-formula {
   padding: 28px 20px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.55);
+  background: rgb(255 255 255 / calc(0.55 * var(--surface-k)));
   border: 1px solid var(--glass-border);
   box-shadow: inset 0 1px 0 var(--glass-highlight);
   display: flex;
@@ -1161,7 +1211,7 @@ a {
      second backdrop-filter has nothing further to blur and reads as flat.
      A frosted fill + inset highlight + its own drop shadow is what actually
      reads as a distinct glass surface here. */
-  background: rgba(255, 255, 255, 0.55);
+  background: rgb(255 255 255 / calc(0.55 * var(--surface-k)));
   border: 1px solid var(--glass-border);
   box-shadow:
     inset 0 1px 0 var(--glass-highlight),
@@ -1176,7 +1226,7 @@ a {
 
 .variant-trigger:hover {
   border-color: var(--brand-color);
-  background-color: rgba(255, 255, 255, 0.75);
+  background-color: rgb(255 255 255 / calc(0.75 * var(--surface-k)));
 }
 
 .variant-trigger:focus-visible {
@@ -1231,7 +1281,7 @@ a {
 }
 
 .variant-option:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgb(var(--tint-black) / 0.05);
 }
 
 .variant-option-active {
@@ -1264,7 +1314,7 @@ a {
   font-size: 14px;
   padding: 8px 12px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.5);
+  background: rgb(255 255 255 / calc(0.5 * var(--surface-k)));
 }
 
 .var-symbol {
@@ -1319,7 +1369,7 @@ a {
   gap: 10px;
   padding: 8px 10px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.5);
+  background: rgb(255 255 255 / calc(0.5 * var(--surface-k)));
   border: 1px solid transparent;
   transition: border-color 0.2s ease, background 0.2s ease;
 }
@@ -1341,7 +1391,7 @@ a {
   flex: 1;
   min-width: 0;
   border: none;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgb(255 255 255 / calc(0.7 * var(--surface-k)));
   border-radius: 8px;
   padding: 6px 8px;
   font-size: 14px;
@@ -1370,7 +1420,7 @@ a {
   padding: 8px 14px;
   border-radius: 999px;
   border: 1px solid var(--glass-border);
-  background: rgba(255, 255, 255, 0.5);
+  background: rgb(255 255 255 / calc(0.5 * var(--surface-k)));
   color: var(--ink);
   font-size: 13px;
   font-weight: 600;
@@ -1379,7 +1429,7 @@ a {
 }
 
 .related-chip:hover {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgb(255 255 255 / calc(0.85 * var(--surface-k)));
   border-color: var(--brand-color);
 }
 
@@ -1542,7 +1592,7 @@ a {
   height: 4px;
   transform: translateY(-50%);
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.1);
+  background: rgb(var(--tint-black) / 0.1);
 }
 
 .workspace-zoom-fill {
@@ -1665,7 +1715,7 @@ a {
   gap: 10px;
   padding: 12px 10px 12px 16px;
   cursor: grab;
-  background: rgba(255, 255, 255, 0.35);
+  background: rgb(255 255 255 / calc(0.35 * var(--surface-k)));
   border-bottom: 1px solid var(--glass-border);
   touch-action: none;
   user-select: none;
@@ -1690,7 +1740,7 @@ a {
   height: 26px;
   border-radius: 50%;
   border: none;
-  background: rgba(0, 0, 0, 0.08);
+  background: rgb(var(--tint-black) / 0.08);
   color: var(--ink);
   font-size: 16px;
   cursor: pointer;
@@ -1700,7 +1750,7 @@ a {
 }
 
 .workspace-card-close:hover {
-  background: rgba(0, 0, 0, 0.14);
+  background: rgb(var(--tint-black) / 0.14);
 }
 
 .workspace-card-body {
@@ -1818,7 +1868,7 @@ a {
      text inputs, and on browsers where backdrop-filter is dropped or weak
      (many phones and in-app views) the page behind would otherwise show
      through sharply and fight with the content. */
-  background: rgba(248, 248, 252, 0.96);
+  background: var(--panel-bg);
   box-shadow:
     inset 0 1px 0 var(--glass-highlight),
     0 32px 72px rgba(60, 64, 90, 0.28);
@@ -1835,7 +1885,7 @@ a {
   align-items: center;
   gap: 2px;
   padding: 8px 10px;
-  border-bottom: 1px solid rgba(28, 28, 30, 0.08);
+  border-bottom: 1px solid rgb(var(--tint-ink) / 0.08);
 }
 
 .calculator-toolbar-btn {
@@ -1854,7 +1904,7 @@ a {
 }
 
 .calculator-toolbar-btn:hover:not(:disabled) {
-  background: rgba(0, 0, 0, 0.06);
+  background: rgb(var(--tint-black) / 0.06);
   color: var(--brand-color);
 }
 
@@ -1916,7 +1966,7 @@ a {
   border: none;
   /* --glass-border reads as basically invisible against this panel's pale
      surface (see .calculator-expr-row above) — same fix here. */
-  border-right: 1px solid rgba(28, 28, 30, 0.08);
+  border-right: 1px solid rgb(var(--tint-ink) / 0.08);
   background: transparent;
   color: var(--ink-soft);
   cursor: pointer;
@@ -1926,7 +1976,7 @@ a {
 }
 
 .calculator-sidebar-toggle:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgb(var(--tint-black) / 0.05);
   color: var(--brand-color);
 }
 
@@ -1940,7 +1990,7 @@ a {
   /* --glass-border is a bright highlight meant for a glass edge against a
      colorful backdrop — nearly invisible here against the list's own pale
      surface, so this needs an actual dark divider instead. */
-  border-bottom: 1px solid rgba(28, 28, 30, 0.08);
+  border-bottom: 1px solid rgb(var(--tint-ink) / 0.08);
 }
 
 .calculator-expr-row-main {
@@ -1963,7 +2013,7 @@ a {
   font-size: 12px;
   font-weight: 700;
   color: var(--ink-soft);
-  background: rgba(0, 0, 0, 0.06);
+  background: rgb(var(--tint-black) / 0.06);
   transition: opacity 0.15s ease;
 }
 
@@ -1999,7 +2049,7 @@ a {
 .calculator-expr-suggest-btn {
   border: none;
   border-radius: 7px;
-  background: rgba(0, 0, 0, 0.06);
+  background: rgb(var(--tint-black) / 0.06);
   color: var(--ink);
   font-size: 13px;
   font-weight: 600;
@@ -2010,7 +2060,7 @@ a {
 }
 
 .calculator-expr-suggest-btn:hover {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgb(var(--tint-black) / 0.1);
 }
 
 .calculator-expr-suggest-btn-all {
@@ -2175,7 +2225,7 @@ a {
 }
 
 .calculator-expr-delete:hover {
-  background: rgba(0, 0, 0, 0.08);
+  background: rgb(var(--tint-black) / 0.08);
 }
 
 .calculator-expr-slider {
@@ -2188,7 +2238,7 @@ a {
 .calculator-expr-slider-bound {
   width: 34px;
   border: none;
-  background: rgba(0, 0, 0, 0.05);
+  background: rgb(var(--tint-black) / 0.05);
   border-radius: 6px;
   padding: 2px 4px;
   font-size: 11px;
@@ -2228,14 +2278,14 @@ a {
   background: linear-gradient(
     to right,
     var(--brand-color) var(--fill, 0%),
-    rgba(0, 0, 0, 0.1) var(--fill, 0%)
+    rgb(var(--tint-black) / 0.1) var(--fill, 0%)
   );
 }
 
 .calculator-expr-slider-input::-moz-range-track {
   height: 3px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.1);
+  background: rgb(var(--tint-black) / 0.1);
 }
 
 .calculator-expr-slider-input::-moz-range-progress {
@@ -2252,7 +2302,7 @@ a {
   margin-top: -5px;
   border-radius: 50%;
   background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid rgb(var(--tint-black) / 0.1);
   box-shadow: 0 1px 3px rgba(60, 64, 90, 0.35);
 }
 
@@ -2261,7 +2311,7 @@ a {
   height: 13px;
   border-radius: 50%;
   background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid rgb(var(--tint-black) / 0.1);
   box-shadow: 0 1px 3px rgba(60, 64, 90, 0.35);
 }
 
@@ -2306,7 +2356,7 @@ a {
   height: 36px;
   border-radius: 50%;
   border: 1px solid var(--glass-border);
-  background: rgba(255, 255, 255, 0.7);
+  background: rgb(255 255 255 / calc(0.7 * var(--surface-k)));
   color: var(--ink);
   cursor: pointer;
   display: flex;
@@ -2335,7 +2385,7 @@ a {
   height: 32px;
   border-radius: 50%;
   border: 1px solid var(--glass-border);
-  background: rgba(255, 255, 255, 0.7);
+  background: rgb(255 255 255 / calc(0.7 * var(--surface-k)));
   color: var(--ink);
   font-size: 18px;
   line-height: 1;
@@ -2362,7 +2412,7 @@ a {
   padding: 4px 8px;
   border-radius: 8px;
   border: 1.5px solid;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgb(255 255 255 / calc(0.95 * var(--surface-k)));
   color: var(--ink);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
@@ -2426,10 +2476,6 @@ a {
     align-items: stretch;
     gap: 12px;
     margin-bottom: 24px;
-  }
-  /* Stretch would make the back link a full-width bar. */
-  .subject-page-home {
-    align-self: flex-start;
   }
   /* The four pills can be wider than the screen — scroll them sideways
      instead of clipping or wrapping onto a second row. */
@@ -2499,7 +2545,7 @@ a {
   .fgc.glass {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    background: rgba(255, 255, 255, 0.55);
+    background: rgb(255 255 255 / calc(0.55 * var(--surface-k)));
   }
 
   /* --- Search (16px keeps iOS from zooming the page on focus) --- */
@@ -2582,6 +2628,8 @@ a {
 .top-bar {
   --k: 0.82;
   --island-h: calc(34px * var(--k));
+  /* The resting pill's width: four cells, three hairline gaps, and padding. */
+  --island-w: calc(104px * var(--k));
   position: fixed;
   top: calc(10px + env(safe-area-inset-top));
   left: 0;
@@ -2603,11 +2651,13 @@ a {
   --window: var(--island-h);
   --row: calc(60px * var(--k));
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  width: var(--island-w);
   height: var(--window);
-  padding: 0 calc(16px * var(--k));
-  border-radius: 999px;
+  /* Half the height reads as a full pill, and — unlike 999px — it can
+     animate smoothly to the rectangle's smaller corner radius. */
+  border-radius: calc(var(--island-h) / 2);
   background: #000;
   color: #fff;
   font-family: var(--font-display);
@@ -2616,6 +2666,261 @@ a {
   font-variant-numeric: tabular-nums;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
   user-select: none;
+  transition:
+    width 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+/* Held down: open into a larger rounded rectangle. */
+.dynamic-island-link-expanded .dynamic-island {
+  width: calc(314px * var(--k));
+  height: calc(84px * var(--k));
+  border-radius: calc(26px * var(--k));
+}
+
+/* The top row: the day on the left, the digits (the home link) in the middle,
+   the date on the right. Resting, the side columns collapse to nothing, so
+   the pill is just the digits; opening widens the pill and they fade in.
+   It keeps its place at the top while the island grows downward. */
+.island-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  width: 100%;
+  height: var(--island-h);
+  flex-shrink: 0;
+}
+
+.island-digits {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--island-h);
+  padding: 0 calc(16px * var(--k));
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Day and date read as a matched pair of small, tracked-out capitals — the
+   same size, weight and tone on both sides of the time, in the manner of a
+   status bar. Open, the island is always white, so the ink is a fixed dark. */
+.island-side {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  line-height: 1.2;
+  font-size: calc(11.5px * var(--k));
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  color: rgb(0 0 0 / 0.62);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+/* Each is centered in the space between the island's edge and the time. The
+   tracking adds a little space after the last letter, so the padding is a touch
+   heavier on the leading side to keep the text optically centered. */
+.island-side-left,
+.island-side-right {
+  padding: 0 calc(4px * var(--k)) 0 calc(6px * var(--k));
+  text-align: center;
+}
+
+.dynamic-island-link-expanded .island-side {
+  opacity: 1;
+  transition: opacity 0.3s ease 0.15s;
+}
+
+/* The space below: the dark mode switch. Hidden (and unfocusable) until the
+   island is open. */
+.island-controls {
+  width: calc(100% - 28px * var(--k));
+  margin-top: calc(4px * var(--k));
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(calc(-6px * var(--k)));
+  transition: opacity 0.2s ease, transform 0.3s ease, visibility 0s linear 0.3s;
+}
+
+.dynamic-island-link-expanded .island-controls {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: opacity 0.3s ease 0.15s, transform 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.15s, visibility 0s;
+}
+
+/* Open, the island is always white with dark text, so these use fixed dark
+   tints rather than the theme's. */
+.island-theme {
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--k));
+  width: 100%;
+  height: calc(32px * var(--k));
+  padding: 0 calc(8px * var(--k)) 0 calc(12px * var(--k));
+  border: none;
+  border-radius: calc(15px * var(--k));
+  background: rgb(0 0 0 / 0.07);
+  color: #000;
+  font: inherit;
+  font-size: calc(14px * var(--k));
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.island-theme:hover {
+  background: rgb(0 0 0 / 0.11);
+}
+
+.island-theme:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: 2px;
+}
+
+.island-theme svg {
+  flex-shrink: 0;
+  width: calc(16px * var(--k));
+  height: calc(16px * var(--k));
+}
+
+.island-theme-label {
+  flex: 1;
+  text-align: left;
+}
+
+/* An iOS-style switch: a soft grey track that fills with the site's own accent
+   color when on, and a white thumb with a layered shadow that gently stretches
+   while pressed (and springs a touch past its stop when it lands). */
+.island-switch {
+  --track-w: calc(42px * var(--k));
+  --track-h: calc(25px * var(--k));
+  --thumb: calc(21px * var(--k));
+  --inset: calc(2px * var(--k));
+  position: relative;
+  flex-shrink: 0;
+  width: var(--track-w);
+  height: var(--track-h);
+  border-radius: 999px;
+  background: rgb(120 120 128 / 0.32);
+  transition: background-color 0.25s ease;
+}
+
+.island-switch::after {
+  content: '';
+  position: absolute;
+  top: var(--inset);
+  left: var(--inset);
+  width: var(--thumb);
+  height: var(--thumb);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.15),
+    0 1px 1px rgba(0, 0, 0, 0.16),
+    0 3px 1px rgba(0, 0, 0, 0.06);
+  /* Steep at the start so the thumb leaves the moment you click, then a small
+     spring past the stop as it lands. */
+  transition:
+    transform 0.3s cubic-bezier(0.2, 1.1, 0.35, 1),
+    width 0.15s ease;
+}
+
+.island-theme[aria-checked='true'] .island-switch {
+  background: var(--brand-color);
+}
+
+.island-theme[aria-checked='true'] .island-switch::after {
+  transform: translateX(calc(var(--track-w) - var(--thumb) - var(--inset) * 2));
+}
+
+/* Pressed: the thumb stretches toward the direction it's about to travel. */
+.island-theme:active .island-switch::after {
+  width: calc(var(--thumb) + 5px * var(--k));
+}
+
+.island-theme[aria-checked='true']:active .island-switch::after {
+  transform: translateX(calc(var(--track-w) - var(--thumb) - var(--inset) * 2 - 5px * var(--k)));
+}
+
+/* The island is the home button: a plain link around the pill. The top bar
+   itself ignores clicks, so the link opts back in. */
+/* A fixed-size placeholder the size of the resting pill, so the top bar's
+   layout never moves when the island grows — the pill is anchored to its
+   top-center and opens outward from there, over its neighbors. */
+.dynamic-island-link {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+  width: var(--island-w);
+  height: var(--island-h);
+  border-radius: 999px;
+  color: inherit;
+  text-decoration: none;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+.dynamic-island-link-expanded {
+  z-index: 3;
+}
+
+/* Pressed or open, hover no longer scales anything. The island grows and
+   shrinks under the cursor, so a hover effect (the grow, the color flip) would
+   flicker on and off as its edge crosses the pointer — and the grow has to be
+   let go of *before* the island starts opening, not during it: released while
+   the size animation runs, the two overlap and the island visibly wobbles. So
+   the grow releases the instant you press, on the ordinary quick transition,
+   and by the time a hold opens the island it is already at rest. It holds one
+   steady look, the inverted white, for as long as it's open. */
+/* (Doubled class names so this outranks the plain :hover grow further down —
+   equal priority would let the later rule win, and the grow would keep
+   toggling as the cursor crossed the moving edge.) */
+.dynamic-island-link.dynamic-island-link-pressed,
+.dynamic-island-link.dynamic-island-link-pressed:hover,
+.dynamic-island-link.dynamic-island-link-expanded,
+.dynamic-island-link.dynamic-island-link-expanded:hover {
+  transform: none;
+}
+
+.dynamic-island-link-expanded .dynamic-island {
+  background: #fff;
+  color: #000;
+}
+
+.island-anchor {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate3d(-50%, 0, 0);
+}
+
+.dynamic-island-link:hover {
+  transform: scale(1.05);
+}
+
+/* Same invert as the calculator button: hover (or press) flips the black pill
+   to white with black digits. */
+.dynamic-island-link:hover .dynamic-island,
+.dynamic-island-link:active .dynamic-island,
+.dynamic-island-link:focus-visible .dynamic-island {
+  background: #fff;
+  color: #000;
+}
+
+.dynamic-island-link:focus-visible {
+  outline: 2px solid var(--brand-color);
+  outline-offset: 3px;
 }
 
 .island-slot {
@@ -2674,4 +2979,74 @@ a {
      down so they look centered in the pill. */
   position: relative;
   top: 0.11em;
+}
+
+/* Route transitions animate this wrapper (see AnimatedRoutes). */
+.route-shell {
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fgc,
+  .subject-page-title {
+    animation: none;
+  }
+}
+
+/* ---------------- Dark theme touch-ups ---------------- */
+
+/* A near-black background wants a little more color in the washes, and the
+   black island and calculator button need a hairline to stay visible on it. */
+:root[data-theme='dark'] .aurora {
+  background:
+    radial-gradient(ellipse 900px 700px at 12% 8%, rgba(115, 118, 245, 0.16), transparent 60%),
+    radial-gradient(ellipse 800px 800px at 88% 10%, rgba(96, 165, 250, 0.12), transparent 62%),
+    radial-gradient(ellipse 1000px 800px at 50% 105%, rgba(115, 118, 245, 0.12), transparent 65%),
+    var(--bg-base);
+}
+
+:root[data-theme='dark'] .dynamic-island,
+:root[data-theme='dark'] .calculator-pull-tab {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+/* The light-ended brand gradient would wash out the white text on the search
+   answer cards, so they get a deeper one in dark. */
+:root[data-theme='dark'] .search-smart-answer {
+  background: linear-gradient(90deg, #3b6fd1 0%, #4f4fd8 55%, #5b45b8 100%);
+}
+
+/* ---------------- Theme switch ripple ---------------- */
+
+/* The circular reveal is driven from JS (see setTheme). These just switch off
+   the browser's default cross-fade so the new theme wipes in cleanly over the
+   old one instead of blending with it. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+/* The incoming theme is shown through a soft-edged circular mask (grown from
+   JS). It starts at zero size, so nothing of it shows until the reveal begins. */
+::view-transition-new(root) {
+  z-index: 2;
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 0%, #000 80%, transparent 100%);
+  mask-image: radial-gradient(circle closest-side, #000 0%, #000 80%, transparent 100%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 0 0;
+  mask-size: 0 0;
+}
+
+/* While a theme switch is under way, the switch itself snaps to its new state
+   instead of sliding, so the ripple's still pictures both show it already
+   flipped and the ripple can start immediately. */
+:root[data-theme-switching] .island-switch,
+:root[data-theme-switching] .island-switch::after {
+  transition: none !important;
 }

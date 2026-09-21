@@ -1,10 +1,7 @@
 import { useState } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import { LandingPage } from './pages/LandingPage';
-import { SubjectPage } from './pages/SubjectPage';
-import { WorkspacePage } from './pages/WorkspacePage';
-import { ContactPage } from './pages/ContactPage';
+import { AnimatedRoutes } from './components/AnimatedRoutes';
 import { TopBar } from './components/TopBar';
 import { FormulaDetail } from './components/FormulaDetail';
 import { DetailContext } from './context/DetailContext';
@@ -35,12 +32,7 @@ function App() {
           <div className="app-shell">
             <div className="aurora" aria-hidden="true" />
 
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/workspace" element={<WorkspacePage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/:subjectId" element={<SubjectPage />} />
-            </Routes>
+            <AnimatedRoutes />
 
             <TopBar />
 

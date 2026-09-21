@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CalculatorIcon } from './CalculatorIcon';
+import { useTheme } from '../lib/theme';
 import { motion, AnimatePresence } from 'framer-motion';
 import { classifyRow, colorForIndex, type RowResult } from '../lib/mathEngine';
 import { CalculatorExpressionRow, type SliderRange } from './CalculatorExpressionRow';
@@ -22,7 +23,7 @@ interface CalculatorPanelProps {
 // The card starts (and ends) as the white circle the button turns into on
 // hover, then settles into the panel's own near-white surface.
 const CIRCLE_COLOR = 'rgba(255, 255, 255, 1)';
-const PANEL_COLOR = 'rgba(248, 248, 252, 0.96)';
+const PANEL_COLORS = { light: 'rgba(248, 248, 252, 0.96)', dark: 'rgba(20, 22, 31, 0.96)' };
 const CIRCLE_SHADOW = 'inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 6px 18px rgba(0, 0, 0, 0.28)';
 const PANEL_SHADOW = 'inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 32px 72px rgba(60, 64, 90, 0.28)';
 
@@ -178,6 +179,7 @@ export function CalculatorPanel({ open, onClose, originRect, onExited }: Calcula
   const [listCollapsed, setListCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(computeSidebarWidth);
   const [target, setTarget] = useState(panelTarget);
+  const PANEL_COLOR = PANEL_COLORS[useTheme()];
   // Coalesces a burst of rapid edits (typing a word, dragging a slider)
   // into a single undo step, captured from the state right before the
   // burst started rather than one step per keystroke/tick.

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
 import { WorkspaceCard } from '../components/WorkspaceCard';
 import { WorkspaceSearchLauncher } from '../components/WorkspaceSearchLauncher';
 import { WorkspaceZoomSlider } from '../components/WorkspaceZoomSlider';
@@ -60,27 +59,6 @@ function clusterBoxes(boxes: CardBox[]): CardBox[][] {
     groups.set(root, arr);
   });
   return Array.from(groups.values());
-}
-
-function HomeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M4 11.5L12 4l8 7.5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M6 10v9a1 1 0 001 1h3v-6h4v6h3a1 1 0 001-1v-9"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
 }
 
 function ResizeIcon() {
@@ -294,9 +272,6 @@ export function WorkspacePage() {
         onMouseEnter={() => setEdgeOpen(true)}
         onMouseLeave={() => setEdgeOpen(false)}
       >
-        <Link to="/" className="workspace-edge-icon glass" aria-label="Back to home">
-          <HomeIcon />
-        </Link>
         <WorkspaceSearchLauncher onSelect={addFormula} />
         <motion.div
           ref={resizeShapeRef}

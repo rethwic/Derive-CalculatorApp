@@ -5,6 +5,8 @@ import type { Formula } from '../types';
 interface FormulaGridCardProps {
   formula: Formula;
   onClick: (formula: Formula, rect: DOMRect) => void;
+  // Position in its section, used to stagger the card's rise-in.
+  index?: number;
 }
 
 function PlusIcon() {
@@ -23,7 +25,7 @@ function CheckIcon() {
   );
 }
 
-export function FormulaGridCard({ formula, onClick }: FormulaGridCardProps) {
+export function FormulaGridCard({ formula, onClick, index = 0 }: FormulaGridCardProps) {
   const { cards, addFormula, closeCard } = useWorkspace();
   const existingCard = cards.find((c) => c.formulaId === formula.id);
   const isAdded = !!existingCard;
@@ -42,6 +44,7 @@ export function FormulaGridCard({ formula, onClick }: FormulaGridCardProps) {
   return (
     <div
       className="fgc glass"
+      style={{ '--i': Math.min(index, 14) } as React.CSSProperties}
       role="button"
       tabIndex={0}
       onClick={(e) => onClick(formula, e.currentTarget.getBoundingClientRect())}

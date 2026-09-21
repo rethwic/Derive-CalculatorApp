@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 
 const CONTACT_EMAIL = 'rethwicknagarajan@gmail.com';
 
@@ -128,10 +127,6 @@ export function ContactPage() {
 
   return (
     <div className="contact-page">
-      <Link to="/" className="contact-back glass">
-        ← Derive
-      </Link>
-
       <div className="contact-hero">
         <div className="contact-hero-icon">
           <MailIcon />

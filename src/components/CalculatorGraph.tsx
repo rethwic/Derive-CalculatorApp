@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { getTheme, useTheme } from '../lib/theme';
 
 export interface GraphCurve {
   id: string;
@@ -96,7 +97,8 @@ function draw(
 
   // Grid
   ctx.lineWidth = 1;
-  ctx.strokeStyle = 'rgba(28, 28, 30, 0.08)';
+  const dark = getTheme() === 'dark';
+  ctx.strokeStyle = dark ? 'rgba(236, 236, 241, 0.1)' : 'rgba(28, 28, 30, 0.08)';
   ctx.beginPath();
   for (let i = Math.ceil(minX / step); i * step <= maxX; i++) {
     const sx = Math.round(toScreenX(i * step)) + 0.5;
@@ -113,7 +115,7 @@ function draw(
   // Axes
   const axisX = toScreenX(0);
   const axisY = toScreenY(0);
-  ctx.strokeStyle = 'rgba(28, 28, 30, 0.4)';
+  ctx.strokeStyle = dark ? 'rgba(236, 236, 241, 0.45)' : 'rgba(28, 28, 30, 0.4)';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   if (axisX >= 0 && axisX <= cssW) {
@@ -129,7 +131,7 @@ function draw(
   // Tick labels — pinned to whichever screen edge is closer when the axis
   // itself has been panned out of view, so numbers stay legible.
   ctx.font = FONT;
-  ctx.fillStyle = 'rgba(28, 28, 30, 0.55)';
+  ctx.fillStyle = dark ? 'rgba(236, 236, 241, 0.6)' : 'rgba(28, 28, 30, 0.55)';
   const labelY = clamp(axisY, 12, cssH - 6);
   const labelX = clamp(axisX, 4, cssW - 28);
   ctx.textBaseline = 'top';
@@ -196,7 +198,7 @@ function draw(
     if (sx < -20 || sx > cssW + 20 || sy < -20 || sy > cssH + 20) continue;
     ctx.beginPath();
     ctx.arc(sx, sy, POINT_RADIUS + 2, 0, Math.PI * 2);
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = dark ? '#14161f' : '#fff';
     ctx.fill();
     ctx.beginPath();
     ctx.arc(sx, sy, POINT_RADIUS, 0, Math.PI * 2);
@@ -206,6 +208,9 @@ function draw(
 }
 
 export function CalculatorGraph({ curves, verticals, points, onClose }: CalculatorGraphProps) {
+  // Re-draws when the theme flips: grid, axes and labels are painted onto the
+  // canvas in JS, so they can't follow the CSS variables on their own.
+  const theme = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<View>({ ...DEFAULT_VIEW });
@@ -281,7 +286,7 @@ export function CalculatorGraph({ curves, verticals, points, onClose }: Calculat
   useEffect(() => {
     redraw();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [curves, verticals, points]);
+  }, [curves, verticals, points, theme]);
 
   useEffect(() => {
     updateLabelPositions();

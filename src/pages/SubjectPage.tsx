@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
+import { AnimatePresence, motion, useReducedMotion, type Variants } from 'framer-motion';
 import { FormulaGridCard } from '../components/FormulaGridCard';
 import { GlobalSearch } from '../components/GlobalSearch';
 import { subjects, subjectMap } from '../data/subjects';
@@ -10,10 +11,40 @@ import type { CategoryId, SubjectId } from '../types';
 
 type CategoryFilter = CategoryId | 'all';
 
+// Switching between Math / Science / Tech keeps the header (tabs and search)
+// exactly where it is and swaps only the content below it, sliding in the
+// direction of travel. `custom` is that direction: 1 = to the right.
+const bodyVariants: Variants = {
+  initial: (dir: number) => ({ opacity: 0, x: dir * 48 }),
+  animate: { opacity: 1, x: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
+  exit: (dir: number) => ({
+    opacity: 0,
+    x: -dir * 48,
+    transition: { duration: 0.22, ease: [0.4, 0, 1, 1] },
+  }),
+};
+
+const reducedBodyVariants: Variants = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: 0.2 } },
+  exit: { opacity: 0, transition: { duration: 0.12 } },
+};
+
+function subjectIndex(id: string | undefined) {
+  return Math.max(0, subjects.findIndex((s) => s.id === id));
+}
+
 export function SubjectPage() {
   const { subjectId } = useParams<{ subjectId: string }>();
   const { openDetail } = useDetail();
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all');
+  const reduceMotion = useReducedMotion();
+
+  // Which way we just moved between subjects, held steady across re-renders so
+  // the outgoing content keeps the same direction for its whole exit.
+  const moveRef = useRef({ from: subjectId, to: subjectId });
+  if (moveRef.current.to !== subjectId) moveRef.current = { from: moveRef.current.to, to: subjectId };
+  const direction = Math.sign(subjectIndex(moveRef.current.to) - subjectIndex(moveRef.current.from)) || 1;
 
   const subject = subjectId ? subjectMap[subjectId as SubjectId] : undefined;
 
@@ -32,9 +63,6 @@ export function SubjectPage() {
   return (
     <div className="subject-page">
       <header className="subject-page-header">
-        <Link to="/" className="subject-page-home glass">
-          ← Derive
-        </Link>
         <div className="subject-switcher">
           {subjects.map((s) => (
             <Link
@@ -54,6 +82,20 @@ export function SubjectPage() {
         </div>
       </header>
 
+      <AnimatePresence
+        mode="wait"
+        initial={false}
+        custom={direction}
+        onExitComplete={() => window.scrollTo(0, 0)}
+      >
+        <motion.div
+          key={subject.id}
+          custom={direction}
+          variants={reduceMotion ? reducedBodyVariants : bodyVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+        >
       <div className="subject-page-title">
         <h1>{subject.name}</h1>
         <p>{subject.tagline}</p>
@@ -89,13 +131,15 @@ export function SubjectPage() {
           <section key={categoryId} className="category-section">
             <h2 className="category-heading">{cat.name}</h2>
             <div className="formula-grid">
-              {items.map((f) => (
-                <FormulaGridCard key={f.id} formula={f} onClick={openDetail} />
+              {items.map((f, i) => (
+                <FormulaGridCard key={f.id} formula={f} index={i} onClick={openDetail} />
               ))}
             </div>
           </section>
         );
       })}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
