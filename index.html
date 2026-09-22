@@ -4,12 +4,32 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Derive — Searchable Formula Reference</title>
+    <title>Derive8</title>
     <script>
       try {
-        if (localStorage.getItem('derive-theme') === 'dark') document.documentElement.dataset.theme = 'dark';
+        var theme = localStorage.getItem('derive-theme') === 'dark' ? 'dark' : 'light';
+        if (theme === 'dark') document.documentElement.dataset.theme = 'dark';
         var accent = localStorage.getItem('derive-accent');
+        var accentColors = {
+          iris: { light: ['#60a5fa', '#4f46e5'], dark: ['#7cb4ff', '#7376f5'] },
+          ember: { light: ['#ff9a3c', '#e4472b'], dark: ['#ffb066', '#f2683f'] },
+          forest: { light: ['#34d399', '#178a4a'], dark: ['#6ee7b7', '#2ea867'] },
+          rose: { light: ['#f472b6', '#db2777'], dark: ['#f9a8d4', '#e8579c'] },
+        };
         if (accent) document.documentElement.dataset.accent = accent;
+        if (!accentColors[accent]) accent = 'iris';
+        // Same "D" mark as public/favicon.svg, simplified to one shape so it
+        // can be recolored to match the saved theme before first paint — see
+        // src/lib/favicon.ts, which keeps this in sync from here on.
+        var stops = accentColors[accent][theme];
+        var path =
+          'M25.946 44.938c-.664.845-2.021.375-2.021-.698V33.937a2.26 2.26 0 0 0-2.262-2.262H10.287c-.92 0-1.456-1.04-.92-1.788l7.48-10.471c1.07-1.497 0-3.578-1.842-3.578H1.237c-.92 0-1.456-1.04-.92-1.788L10.013.474c.214-.297.556-.474.92-.474h28.894c.92 0 1.456 1.04.92 1.788l-7.48 10.471c-1.07 1.498 0 3.579 1.842 3.579h11.377c.943 0 1.473 1.088.89 1.83L25.947 44.94z';
+        var svg =
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 46">' +
+          '<defs><linearGradient id="g" x1="0" y1="0" x2="48" y2="46" gradientUnits="userSpaceOnUse">' +
+          '<stop offset="0" stop-color="' + stops[0] + '"/><stop offset="1" stop-color="' + stops[1] + '"/>' +
+          '</linearGradient></defs><path fill="url(#g)" d="' + path + '"/></svg>';
+        document.querySelector('link[rel="icon"]').href = 'data:image/svg+xml,' + encodeURIComponent(svg);
       } catch (e) {}
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />

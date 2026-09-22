@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { flushSync } from 'react-dom';
+import { applyFavicon } from './favicon';
 
 export type Theme = 'light' | 'dark';
 export type Accent = 'iris' | 'ember' | 'forest' | 'rose';
@@ -41,6 +42,7 @@ const listeners = new Set<() => void>();
 function applyAll() {
   document.documentElement.dataset.theme = currentTheme;
   document.documentElement.dataset.accent = currentAccent;
+  applyFavicon(currentTheme, currentAccent);
 }
 
 // index.html sets both attributes before first paint (so a saved choice never
