@@ -197,7 +197,7 @@ export function FormulaDetail({
     <div className="detail-scrim" onClick={onClose}>
       <motion.div
         ref={panelRef}
-        className="detail-panel glass"
+        className="detail-panel"
         initial={initial}
         animate={{ ...target, opacity: 1 }}
         exit={exit}
